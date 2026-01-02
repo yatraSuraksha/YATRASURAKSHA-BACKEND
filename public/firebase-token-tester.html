@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔑 Firebase ID Token Tester - Yatra Suraksha</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 700px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h2 { 
+            color: #333; 
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #495057;
+            font-size: 16px;
+        }
+        input, button, select { 
+            margin: 8px 0; 
+            padding: 12px 16px; 
+            width: 100%; 
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        input {
+            border: 2px solid #e9ecef;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            border: none; 
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .token-output { 
+            background: #1e1e1e; 
+            color: #4ec9b0;
+            padding: 15px; 
+            border-radius: 8px;
+            margin: 15px 0; 
+            word-break: break-all;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 8px; }
+        .success { color: #155724; background: #d4edda; padding: 10px; border-radius: 8px; }
+        .info { color: #0c5460; background: #d1ecf1; padding: 10px; border-radius: 8px; }
+        .warning { color: #856404; background: #fff3cd; padding: 10px; border-radius: 8px; }
+        .user-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .user-info-item {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user-info-item strong {
+            display: block;
+            color: #495057;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .user-info-item span {
+            color: #212529;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .api-endpoint {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .api-endpoint select {
+            width: 120px;
+            flex-shrink: 0;
+        }
+        .api-endpoint input {
+            flex: 1;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-200 { background: #d4edda; color: #155724; }
+        .status-400 { background: #fff3cd; color: #856404; }
+        .status-401 { background: #f8d7da; color: #721c24; }
+        .status-404 { background: #e2e3e5; color: #383d41; }
+        .status-500 { background: #f8d7da; color: #721c24; }
+        .hidden { display: none; }
+        .divider {
+            border-top: 2px dashed #dee2e6;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔑 Firebase ID Token Tester</h2>
+        <p class="subtitle">Yatra Suraksha API Testing Tool</p>
+        
+        <!-- Step 1: Firebase Status -->
+        <div class="section">
+            <h3>📦 Step 1: Firebase Connection</h3>
+            <div id="firebase-status" class="info">⏳ Initializing Firebase...</div>
+        </div>
+
+        <!-- Step 2: Login -->
+        <div class="section">
+            <h3>🔐 Step 2: Login to Get ID Token</h3>
+            <input type="email" id="email" placeholder="Email address">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="loginUser()" id="login-btn">🚀 Login & Get Token</button>
+        </div>
+
+        <!-- Step 3: Token Display -->
+        <div class="section hidden" id="token-section">
+            <h3>✅ Step 3: Your Authentication</h3>
+            <div id="user-info"></div>
+            <div class="token-output" id="token-display"></div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="copyToken()" class="btn-secondary" style="flex: 1;">📋 Copy Token</button>
+                <button onclick="refreshToken()" class="btn-secondary" style="flex: 1;">🔄 Refresh Token</button>
+                <button onclick="logout()" class="btn-warning" style="flex: 1;">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Step 4: API Testing -->
+        <div class="section hidden" id="api-section">
+            <h3>🧪 Step 4: Test Backend API</h3>
+            
+            <label style="font-size: 13px; color: #666;">API Base URL:</label>
+            <input type="text" id="api-base" value="http://4.186.25.99:3000" placeholder="Backend URL">
+            
+            <label style="font-size: 13px; color: #666; margin-top: 10px;">Endpoint:</label>
+            <div class="api-endpoint">
+                <select id="api-method">
+                    <option value="GET">GET</option>
+                    <option value="POST" selected>POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+                <input type="text" id="api-endpoint" value="/api/users/verify" placeholder="/api/endpoint">
+            </div>
+
+            <label style="font-size: 13px; color: #666;">Quick Endpoints:</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0;">
+                <button onclick="setEndpoint('POST', '/api/users/verify')" style="width: auto; padding: 6px 12px; font-size: 12px;">Verify User</button>
+                <button onclick="setEndpoint('GET', '/api/users/me')" style="width: auto; padding: 6px 12px; font-size: 12px;">Get Profile</button>
+                <button onclick="setEndpoint('GET', '/api/tracking/stats')" style="width: auto; padding: 6px 12px; font-size: 12px;">Stats</button>
+                <button onclick="setEndpoint('GET', '/api/tracking/alerts/active')" style="width: auto; padding: 6px 12px; font-size: 12px;">Alerts</button>
+                <button onclick="setEndpoint('GET', '/api/tracking/geofences')" style="width: auto; padding: 6px 12px; font-size: 12px;">Geofences</button>
+            </div>
+
+            <button onclick="testAPI()" class="btn-success" id="test-btn">⚡ Send Request</button>
+            
+            <div id="api-result"></div>
+        </div>
+
+        <!-- curl Command -->
+        <div class="section hidden" id="curl-section">
+            <h3>💻 cURL Command</h3>
+            <div class="token-output" id="curl-command" style="color: #dcdcaa;"></div>
+            <button onclick="copyCurl()" class="btn-secondary">📋 Copy cURL</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+        // Your Yatra Suraksha Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdCBY2ce0GbOtvoeQghQVjB1sU-OduEiA",
+            authDomain: "yatrasuraksha.firebaseapp.com",
+            projectId: "yatrasuraksha",
+            storageBucket: "yatrasuraksha.firebasestorage.app",
+            messagingSenderId: "998797238629",
+            appId: "1:998797238629:web:52afbba4afd1f394be818c",
+            measurementId: "G-TWGX18MDC8"
+        };
+
+        let auth;
+        let currentUser = null;
+        let currentToken = null;
+
+        // Initialize Firebase
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            
+            document.getElementById('firebase-status').innerHTML = 
+                '<span class="success">✅ Firebase connected to <strong>yatrasuraksha</strong></span>';
+
+            // Listen for auth state changes
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    currentToken = await user.getIdToken();
+                    showLoggedInState();
+                } else {
+                    currentUser = null;
+                    currentToken = null;
+                    hideLoggedInState();
+                }
+            });
+        } catch (error) {
+            document.getElementById('firebase-status').innerHTML = 
+                `<span class="error">❌ Firebase Error: ${error.message}</span>`;
+        }
+
+        function showLoggedInState() {
+            document.getElementById('token-section').classList.remove('hidden');
+            document.getElementById('api-section').classList.remove('hidden');
+            document.getElementById('curl-section').classList.remove('hidden');
+            document.getElementById('login-btn').disabled = true;
+            document.getElementById('login-btn').textContent = '✅ Logged In';
+
+            document.getElementById('user-info').innerHTML = `
+                <div class="user-info">
+                    <div class="user-info-item">
+                        <strong>Email</strong>
+                        <span>${currentUser.email}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <strong>UID</strong>
+                        <span>${currentUser.uid}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <strong>Provider</strong>
+                        <span>${currentUser.providerData[0]?.providerId || 'N/A'}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <strong>Email Verified</strong>
+                        <span>${currentUser.emailVerified ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('token-display').innerHTML = `<pre>${currentToken}</pre>`;
+            updateCurlCommand();
+        }
+
+        function hideLoggedInState() {
+            document.getElementById('token-section').classList.add('hidden');
+            document.getElementById('api-section').classList.add('hidden');
+            document.getElementById('curl-section').classList.add('hidden');
+            document.getElementById('login-btn').disabled = false;
+            document.getElementById('login-btn').textContent = '🚀 Login & Get Token';
+        }
+
+        window.loginUser = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.textContent = '⏳ Logging in...';
+                
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle the rest
+                
+            } catch (error) {
+                btn.disabled = false;
+                btn.textContent = '🚀 Login & Get Token';
+                alert(`❌ Login failed: ${error.message}`);
+            }
+        };
+
+        window.refreshToken = async function() {
+            if (currentUser) {
+                currentToken = await currentUser.getIdToken(true);
+                document.getElementById('token-display').innerHTML = `<pre>${currentToken}</pre>`;
+                updateCurlCommand();
+                alert('✅ Token refreshed!');
+            }
+        };
+
+        window.logout = async function() {
+            await signOut(auth);
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+        };
+
+        window.copyToken = function() {
+            navigator.clipboard.writeText(currentToken).then(() => {
+                alert('✅ Token copied to clipboard!');
+            });
+        };
+
+        window.setEndpoint = function(method, endpoint) {
+            document.getElementById('api-method').value = method;
+            document.getElementById('api-endpoint').value = endpoint;
+            updateCurlCommand();
+        };
+
+        window.updateCurlCommand = function() {
+            const baseUrl = document.getElementById('api-base').value;
+            const method = document.getElementById('api-method').value;
+            const endpoint = document.getElementById('api-endpoint').value;
+            
+            const curl = `curl -X ${method} '${baseUrl}${endpoint}' \\
+  -H 'Authorization: Bearer ${currentToken}' \\
+  -H 'Content-Type: application/json'`;
+            
+            document.getElementById('curl-command').innerHTML = `<pre>${curl}</pre>`;
+        };
+
+        window.copyCurl = function() {
+            const baseUrl = document.getElementById('api-base').value;
+            const method = document.getElementById('api-method').value;
+            const endpoint = document.getElementById('api-endpoint').value;
+            
+            const curl = `curl -X ${method} '${baseUrl}${endpoint}' -H 'Authorization: Bearer ${currentToken}' -H 'Content-Type: application/json'`;
+            
+            navigator.clipboard.writeText(curl).then(() => {
+                alert('✅ cURL command copied!');
+            });
+        };
+
+        window.testAPI = async function() {
+            const resultDiv = document.getElementById('api-result');
+            const baseUrl = document.getElementById('api-base').value;
+            const method = document.getElementById('api-method').value;
+            const endpoint = document.getElementById('api-endpoint').value;
+
+            if (!currentToken) {
+                resultDiv.innerHTML = '<p class="error">❌ No token available. Please login first.</p>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = '<p class="info">⏳ Sending request...</p>';
+                
+                const response = await fetch(`${baseUrl}${endpoint}`, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                const statusClass = `status-${Math.floor(response.status / 100) * 100}`;
+                
+                resultDiv.innerHTML = `
+                    <div style="margin-top: 15px;">
+                        <span class="status-badge ${statusClass}">${response.status} ${response.statusText}</span>
+                        <div class="token-output" style="margin-top: 10px;">
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Request failed: ${error.message}</p>`;
+            }
+        };
+
+        // Update curl when inputs change
+        document.getElementById('api-base').addEventListener('input', updateCurlCommand);
+        document.getElementById('api-method').addEventListener('change', updateCurlCommand);
+        document.getElementById('api-endpoint').addEventListener('input', updateCurlCommand);
+    </script>
+</body>
+</html>

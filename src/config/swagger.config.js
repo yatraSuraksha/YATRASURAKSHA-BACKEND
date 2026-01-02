@@ -64,6 +64,10 @@ const options = {
             {
                 name: '🗺️ Maps',
                 description: 'Azure Maps API endpoints for geocoding, routing, POI search, and location services'
+            },
+            {
+                name: '🎥 Video Management',
+                description: 'Video upload, streaming, download, and management endpoints'
             }
         ],
         servers: [
@@ -72,11 +76,11 @@ const options = {
                 description: 'Current server (relative)',
             },
             {
-                url: 'http://4.186.25.99:5000',
+                url: 'http://4.186.25.99:3000',
                 description: 'Production server',
             },
             {
-                url: 'http://localhost:5000',
+                url: 'http://localhost:3000',
                 description: 'Local development server',
             },
         ],
