@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yatra Suraksha - Maps Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .tourist-list {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .tourist-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .tourist-item:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Yatra Suraksha - Tourist Tracking Test</h1>
+        
+        <div class="controls">
+            <button onclick="loadTouristData()">🔄 Refresh Tourist Data</button>
+            <button onclick="testGoogleMapsAPI()">🧪 Test Google Maps API</button>
+            <button onclick="testBackendAPI()">🔗 Test Backend API</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="map"></div>
+
+        <div class="tourist-list" id="touristList">
+            <p>Click "Refresh Tourist Data" to load tourist locations</p>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let touristMarkers = [];
+        let config = {};
+
+        // Initialize Google Maps
+        function initMap() {
+            console.log('🗺️ Initializing Google Maps...');
+            
+            // Default center (India)
+            const defaultCenter = { lat: 20.5937, lng: 78.9629 };
+            
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 6,
+                center: defaultCenter,
+                mapTypeId: 'roadmap',
+                styles: [
+                    {
+                        featureType: 'poi',
+                        elementType: 'labels',
+                        stylers: [{ visibility: 'off' }]
+                    }
+                ]
+            });
+
+            showStatus('Google Maps initialized successfully!', 'success');
+            loadConfig();
+        }
+
+        // Load configuration from backend
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/tracking/config');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                if (result.success) {
+                    config = result.data;
+                    showStatus('Configuration loaded successfully!', 'success');
+                    
+                    // Update map center if configured
+                    if (config.googleMaps?.defaultCenter) {
+                        map.setCenter(config.googleMaps.defaultCenter);
+                        map.setZoom(config.googleMaps.defaultZoom || 6);
+                    }
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('Failed to load config:', error);
+                showStatus(`Failed to load configuration: ${error.message}`, 'error');
+            }
+        }
+
+        // Load tourist data from backend
+        async function loadTouristData() {
+            try {
+                showStatus('Loading tourist data...', 'success');
+                
+                const response = await fetch('/api/tracking/locations/all');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.data.locations) {
+                    clearMarkers();
+                    displayTourists(result.data.locations);
+                    updateTouristList(result.data.locations);
+                    showStatus(`✅ Loaded ${result.data.count} tourist locations`, 'success');
+                } else {
+                    throw new Error(result.message || 'No tourist data found');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load tourist data:', error);
+                showStatus(`❌ Failed to load tourist data: ${error.message}`, 'error');
+            }
+        }
+
+        // Display tourists on map
+        function displayTourists(tourists) {
+            const bounds = new google.maps.LatLngBounds();
+            
+            tourists.forEach(tourist => {
+                if (tourist.currentLocation) {
+                    const position = {
+                        lat: tourist.currentLocation.latitude,
+                        lng: tourist.currentLocation.longitude
+                    };
+
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: tourist.name,
+                        icon: {
+                            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                                <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="15" cy="15" r="12" fill="#007bff" stroke="white" stroke-width="2"/>
+                                    <path d="M15 30 L10 20 L20 20 Z" fill="#007bff"/>
+                                    <text x="15" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">T</text>
+                                </svg>
+                            `),
+                            scaledSize: new google.maps.Size(30, 40)
+                        }
+                    });
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                            <div style="padding: 5px;">
+                                <h4 style="margin: 0 0 5px 0;">${tourist.name}</h4>
+                                <p style="margin: 0; font-size: 12px;">
+                                    <strong>ID:</strong> ${tourist.digitalId}<br>
+                                    <strong>Status:</strong> ${tourist.status}<br>
+                                    <strong>Location:</strong> ${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}
+                                </p>
+                            </div>
+                        `
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                    });
+
+                    touristMarkers.push(marker);
+                    bounds.extend(position);
+                }
+            });
+
+            if (tourists.length > 0) {
+                map.fitBounds(bounds);
+                if (map.getZoom() > 15) map.setZoom(15);
+            }
+        }
+
+        // Clear all markers
+        function clearMarkers() {
+            touristMarkers.forEach(marker => marker.setMap(null));
+            touristMarkers = [];
+        }
+
+        // Update tourist list
+        function updateTouristList(tourists) {
+            const listElement = document.getElementById('touristList');
+            
+            if (tourists.length === 0) {
+                listElement.innerHTML = '<p>No tourists found</p>';
+                return;
+            }
+
+            listElement.innerHTML = tourists.map(tourist => `
+                <div class="tourist-item" onclick="focusOnTourist(${tourist.currentLocation.latitude}, ${tourist.currentLocation.longitude})">
+                    <strong>${tourist.name}</strong> (${tourist.digitalId})<br>
+                    <small>Status: ${tourist.status} | Lat: ${tourist.currentLocation.latitude.toFixed(6)}, Lng: ${tourist.currentLocation.longitude.toFixed(6)}</small>
+                </div>
+            `).join('');
+        }
+
+        // Focus on specific tourist
+        function focusOnTourist(lat, lng) {
+            map.setCenter({ lat, lng });
+            map.setZoom(15);
+        }
+
+        // Test Google Maps API
+        function testGoogleMapsAPI() {
+            if (typeof google !== 'undefined' && google.maps) {
+                showStatus('✅ Google Maps API is loaded and working!', 'success');
+            } else {
+                showStatus('❌ Google Maps API is not loaded!', 'error');
+            }
+        }
+
+        // Test Backend API
+        async function testBackendAPI() {
+            try {
+                const response = await fetch('/api/tracking/config');
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('✅ Backend API is working!', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                showStatus(`❌ Backend API error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Auto-refresh tourist data every 30 seconds
+        setInterval(loadTouristData, 30000);
+    </script>
+
+    <!-- Replace YOUR_GOOGLE_MAPS_API_KEY with your actual API key -->
+    <script async defer 
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&callback=initMap">
+    </script>
+</body>
+</html>

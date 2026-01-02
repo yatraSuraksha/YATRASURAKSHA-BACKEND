@@ -1,0 +1,83 @@
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependency directories
+node_modules/
+/node_modules
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+
+# Misc
+.eslintcache
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+.cache/
+.tmp/
+
+# Log files
+*.log
+logs/
+output.log
+server.log
+
+# Firebase service account files
+config/yatrasuraksha-firebase-adminsdk-*.json
+config/*firebase*.json
+config/firebase-admin-service.json
+
+# Backup and archive files
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+*-backup-*
+*backup*
+
+# Hyperledger Fabric sensitive files
+fabric-network/crypto-config/
+fabric-network/channel-artifacts/
+fabric-network/wallet/
+fabric-network/bin/
+fabric-network/config/
+fabric-network/connection-profiles/connection-profile.json
+fabric-network/*.tar.gz
+fabric-network/*.block
+
+# Docker volumes and containers
+.fabricnetwork/
+
+# Temporary and test files
+run-tests.js
+temp/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth Testing - Get ID Token</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        input, button { margin: 10px 0; padding: 10px; width: 100%; box-sizing: border-box; }
+        button { background: #4285f4; color: white; border: none; cursor: pointer; }
+        button:hover { background: #3367d6; }
+        .token-output { background: white; padding: 15px; border: 1px solid #ddd; margin: 10px 0; word-break: break-all; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔑 Get Firebase ID Token for API Testing</h2>
+        
+        <div id="config-section">
+            <h3>Step 1: Configure Firebase</h3>
+            <p>Enter your Firebase config (from Firebase Console → Project Settings → Web App):</p>
+            <textarea id="firebaseConfig" placeholder='Paste your Firebase config JSON here, e.g.:
+{
+  "apiKey": "your-api-key",
+  "authDomain": "your-project.firebaseapp.com",
+  "projectId": "your-project-id",
+  ...
+}' rows="8" style="width: 100%; font-family: monospace;"></textarea>
+            <button onclick="initFirebase()">Initialize Firebase</button>
+            <div id="firebase-status"></div>
+        </div>
+
+        <div id="auth-section" style="display: none;">
+            <h3>Step 2: Login to Get ID Token</h3>
+            <input type="email" id="email" placeholder="Your email">
+            <input type="password" id="password" placeholder="Your password">
+            <button onclick="loginUser()">Login & Get ID Token</button>
+            
+            <h3>Step 3: Your ID Token</h3>
+            <div id="token-result"></div>
+            <button onclick="copyToken()" id="copy-btn" style="display: none;">📋 Copy Token</button>
+            
+            <h3>Step 4: Test Your API</h3>
+            <button onclick="testAPI()" id="test-btn" style="display: none;">🧪 Test Backend API</button>
+            <div id="api-result"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+        let auth;
+        let currentToken;
+
+        window.initFirebase = function() {
+            try {
+                const configText = document.getElementById('firebaseConfig').value.trim();
+                const firebaseConfig = JSON.parse(configText);
+                
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                
+                document.getElementById('firebase-status').innerHTML = 
+                    '<p class="success">✅ Firebase initialized successfully!</p>';
+                document.getElementById('auth-section').style.display = 'block';
+            } catch (error) {
+                document.getElementById('firebase-status').innerHTML = 
+                    `<p class="error">❌ Error: ${error.message}</p>`;
+            }
+        };
+
+        window.loginUser = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('token-result');
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<p class="error">Please enter both email and password</p>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = '<p>🔄 Logging in...</p>';
+                
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const idToken = await userCredential.user.getIdToken();
+                
+                currentToken = idToken;
+                
+                resultDiv.innerHTML = `
+                    <p class="success">✅ Login successful!</p>
+                    <p><strong>User:</strong> ${userCredential.user.email}</p>
+                    <p><strong>UID:</strong> ${userCredential.user.uid}</p>
+                    <div class="token-output">
+                        <strong>🔑 ID Token:</strong><br>
+                        <span id="token-text">${idToken}</span>
+                    </div>
+                `;
+                
+                document.getElementById('copy-btn').style.display = 'block';
+                document.getElementById('test-btn').style.display = 'block';
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Login failed: ${error.message}</p>`;
+            }
+        };
+
+        window.copyToken = function() {
+            const tokenText = document.getElementById('token-text').textContent;
+            navigator.clipboard.writeText(tokenText).then(() => {
+                alert('✅ Token copied to clipboard!');
+            });
+        };
+
+        window.testAPI = async function() {
+            const resultDiv = document.getElementById('api-result');
+            
+            if (!currentToken) {
+                resultDiv.innerHTML = '<p class="error">No token available. Please login first.</p>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = '<p>🔄 Testing your backend API...</p>';
+                
+                const response = await fetch('http://localhost:3000/api/users/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h4>API Test Result:</h4>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <div class="token-output">
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ API test failed: ${error.message}</p>`;
+            }
+        };
+    </script>
+</body>
+</html>

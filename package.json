@@ -1,0 +1,69 @@
+{
+  "name": "yatra-suraksha-backend",
+  "version": "1.0.0",
+  "description": "Smart Tourist Safety Monitoring & Incident Response System - Backend API",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "node run-tests.js --quick",
+    "test:full": "node comprehensive-api-tests.js",
+    "test:quick": "node run-tests.js --quick",
+    "test:api": "node run-tests.js --api",
+    "validate": "./scripts/validate-setup.sh",
+    "fabric:quick-setup": "cd fabric-network && ./scripts/quick-setup.sh",
+    "fabric:setup": "cd fabric-network && ./scripts/setup-network.sh",
+    "fabric:crypto": "cd fabric-network && ./scripts/generate-crypto.sh",
+    "fabric:start": "cd fabric-network && ./scripts/start-network.sh",
+    "fabric:deploy": "cd fabric-network && ./scripts/deploy-chaincodes.sh",
+    "fabric:stop": "cd fabric-network && ./scripts/stop-network.sh",
+    "fabric:clean": "cd fabric-network && ./scripts/stop-network.sh && rm -rf crypto-config channel-artifacts bin config && docker system prune -f"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yatra-Suraksha/YATRA-SURAKSHA-BACKEND.git"
+  },
+  "author": "Yatra Suraksha Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Yatra-Suraksha/YATRA-SURAKSHA-BACKEND/issues"
+  },
+  "homepage": "https://github.com/Yatra-Suraksha/YATRA-SURAKSHA-BACKEND#readme",
+  "dependencies": {
+    "@azure/cognitiveservices-computervision": "^8.2.0",
+    "@azure/ms-rest-azure-js": "^2.1.0",
+    "@google-cloud/vision": "^5.3.3",
+    "axios": "^1.12.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.4.1",
+    "express-validator": "^7.2.1",
+    "fabric-network": "^2.2.20",
+    "firebase-admin": "^13.5.0",
+    "geolib": "^3.3.4",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.1",
+    "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2",
+    "qrcode": "^1.5.4",
+    "redis": "^4.7.0",
+    "sharp": "^0.34.3",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.3.6",
+    "uuid": "^13.0.0",
+    "web3": "^4.15.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
