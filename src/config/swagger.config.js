@@ -68,6 +68,10 @@ const options = {
         ],
         servers: [
             {
+                url: '/',
+                description: 'Current server (relative)',
+            },
+            {
                 url: 'http://4.186.25.99:5000',
                 description: 'Production server',
             },
