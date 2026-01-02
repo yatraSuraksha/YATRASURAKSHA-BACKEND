@@ -14,6 +14,7 @@ import connectDB from './db/index.db.js'
 import userRouter from './routes/user.router.js'
 import ocrRouter from './routes/ocr.router.js'
 import trackingRouter from './routes/tracking.router.js'
+import familyRouter from './routes/family.router.js'
 import { initializeSocketIO } from './services/socket.service.js'
 import { cleanupOrphanedRecords } from './middlewares/validation.middleware.js'
 import inactivityService from './services/inactivity.service.js'
@@ -72,6 +73,7 @@ app.get('/', (req, res) => {
 app.use('/api/users', userRouter)
 app.use('/api/ocr', ocrRouter)
 app.use('/api/tracking', trackingRouter)
+app.use('/api/family', familyRouter)
 
 // Blockchain health check endpoint
 app.get('/api/blockchain/health', async (req, res) => {

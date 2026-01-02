@@ -294,11 +294,43 @@
 
         // Auto-refresh tourist data every 30 seconds
         setInterval(loadTouristData, 30000);
-    </script>
 
-    <!-- Replace YOUR_GOOGLE_MAPS_API_KEY with your actual API key -->
-    <script async defer 
-            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&callback=initMap">
+        // Dynamically load Google Maps API with key from backend config
+        async function loadGoogleMapsScript() {
+            try {
+                const response = await fetch('/api/tracking/config');
+                const result = await response.json();
+                
+                if (result.success && result.data.googleMaps?.apiKey) {
+                    const script = document.createElement('script');
+                    script.src = `https://maps.googleapis.com/maps/api/js?key=${result.data.googleMaps.apiKey}&callback=initMap`;
+                    script.async = true;
+                    script.defer = true;
+                    script.onerror = () => {
+                        showStatus('❌ Failed to load Google Maps API. Check your API key.', 'error');
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    showStatus('⚠️ Google Maps API key not configured. Set GOOGLE_MAPS_API_KEY in your .env file.', 'error');
+                    document.getElementById('map').innerHTML = `
+                        <div style="display: flex; justify-content: center; align-items: center; height: 100%; background: #f0f0f0;">
+                            <div style="text-align: center; padding: 20px;">
+                                <h3>🗺️ Google Maps API Key Required</h3>
+                                <p>Add <code>GOOGLE_MAPS_API_KEY=your_api_key</code> to your <code>.env</code> file</p>
+                                <p style="font-size: 12px; color: #666;">
+                                    Get an API key from <a href="https://console.cloud.google.com/google/maps-apis" target="_blank">Google Cloud Console</a>
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                showStatus(`❌ Failed to load config: ${error.message}`, 'error');
+            }
+        }
+
+        // Load Google Maps on page load
+        loadGoogleMapsScript();
     </script>
 </body>
 </html>

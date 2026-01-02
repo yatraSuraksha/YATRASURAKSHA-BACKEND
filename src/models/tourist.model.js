@@ -84,8 +84,8 @@ const touristSchema = new mongoose.Schema({
             default: 'Point'
         },
         coordinates: {
-            type: [Number],
-            index: '2dsphere'
+            type: [Number]
+            // 2dsphere index defined via schema.index() below
         },
         timestamp: {
             type: Date,

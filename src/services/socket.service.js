@@ -82,7 +82,66 @@ export const initializeSocketIO = (io) => {
                 }
             }
             
+            // Remove from all family groups
+            removeFromAllFamilyGroups(socket.id)
+            
             connectedClients.delete(socket.id)
+        })
+
+        // Family tracking socket events
+        socket.on('join_family_group', async (data) => {
+            try {
+                const { groupId, touristId } = data
+                if (!groupId) {
+                    socket.emit('error', { message: 'Group ID is required' })
+                    return
+                }
+                
+                joinFamilyGroup(socket.id, groupId)
+                console.log(`👨‍👩‍👧‍👦 Tourist ${touristId} joined family group: ${groupId}`)
+                
+                socket.emit('family_group_joined', { 
+                    groupId, 
+                    message: 'Successfully joined family group for real-time updates' 
+                })
+            } catch (error) {
+                console.error('Error joining family group:', error)
+                socket.emit('error', { message: 'Failed to join family group' })
+            }
+        })
+
+        socket.on('leave_family_group', (data) => {
+            const { groupId } = data
+            if (groupId) {
+                leaveFamilyGroup(socket.id, groupId)
+                console.log(`👨‍👩‍👧‍👦 Socket ${socket.id} left family group: ${groupId}`)
+            }
+        })
+
+        socket.on('family_location_update', async (data) => {
+            try {
+                await handleFamilyLocationUpdate(data, socket.id, io)
+            } catch (error) {
+                console.error('Error handling family location update:', error)
+                socket.emit('error', { message: 'Failed to process family location update' })
+            }
+        })
+
+        socket.on('family_sos', async (data) => {
+            try {
+                await handleFamilySOS(data, socket.id, io)
+            } catch (error) {
+                console.error('Error handling family SOS:', error)
+                socket.emit('error', { message: 'Failed to process family SOS' })
+            }
+        })
+
+        socket.on('family_check_in_response', async (data) => {
+            try {
+                await handleFamilyCheckInResponse(data, socket.id, io)
+            } catch (error) {
+                console.error('Error handling check-in response:', error)
+            }
         })
     })
     setInterval(() => {
@@ -92,6 +151,164 @@ export const initializeSocketIO = (io) => {
         checkInactiveDevices(io)
     }, 300000) 
 }
+
+// Family tracking helper - track family group clients
+let familyGroupClients = new Map()
+
+const joinFamilyGroup = (socketId, groupId) => {
+    if (!familyGroupClients.has(groupId.toString())) {
+        familyGroupClients.set(groupId.toString(), new Set())
+    }
+    familyGroupClients.get(groupId.toString()).add(socketId)
+}
+
+const leaveFamilyGroup = (socketId, groupId) => {
+    const groupMembers = familyGroupClients.get(groupId.toString())
+    if (groupMembers) {
+        groupMembers.delete(socketId)
+        if (groupMembers.size === 0) {
+            familyGroupClients.delete(groupId.toString())
+        }
+    }
+}
+
+const removeFromAllFamilyGroups = (socketId) => {
+    familyGroupClients.forEach((members, groupId) => {
+        members.delete(socketId)
+        if (members.size === 0) {
+            familyGroupClients.delete(groupId)
+        }
+    })
+}
+
+/**
+ * Handle location updates shared with family groups
+ */
+const handleFamilyLocationUpdate = async (data, socketId, io) => {
+    const { touristId, groupIds, latitude, longitude, accuracy, batteryLevel } = data
+    
+    if (!touristId || !latitude || !longitude || !groupIds || !Array.isArray(groupIds)) {
+        throw new Error('Missing required data for family location update')
+    }
+
+    const tourist = await Tourist.findById(touristId).select('personalInfo.name digitalId')
+    if (!tourist) {
+        throw new Error('Tourist not found')
+    }
+
+    const locationData = {
+        touristId,
+        name: tourist.personalInfo?.name || 'Unknown',
+        digitalId: tourist.digitalId,
+        location: {
+            latitude,
+            longitude,
+            accuracy,
+            timestamp: new Date()
+        },
+        batteryLevel,
+        isOnline: true
+    }
+
+    // Broadcast to all specified family groups
+    for (const groupId of groupIds) {
+        const groupMembers = familyGroupClients.get(groupId.toString())
+        if (groupMembers) {
+            groupMembers.forEach(memberSocketId => {
+                if (memberSocketId !== socketId) { // Don't send to self
+                    io.to(memberSocketId).emit('family_member_location', {
+                        groupId,
+                        ...locationData
+                    })
+                }
+            })
+        }
+    }
+
+    console.log(`📍 Family location update from ${tourist.personalInfo?.name} to ${groupIds.length} groups`)
+}
+
+/**
+ * Handle SOS alerts to family groups
+ */
+const handleFamilySOS = async (data, socketId, io) => {
+    const { touristId, groupIds, latitude, longitude, message, alertType = 'sos' } = data
+    
+    if (!touristId || !groupIds || !Array.isArray(groupIds)) {
+        throw new Error('Missing required data for family SOS')
+    }
+
+    const tourist = await Tourist.findById(touristId).select('personalInfo.name digitalId')
+    if (!tourist) {
+        throw new Error('Tourist not found')
+    }
+
+    const sosData = {
+        alertId: `SOS-${Date.now()}-${touristId.toString().slice(-6)}`,
+        touristId,
+        name: tourist.personalInfo?.name || 'Unknown',
+        digitalId: tourist.digitalId,
+        alertType,
+        severity: alertType === 'sos' || alertType === 'emergency' ? 'critical' : 'high',
+        message: message || `${tourist.personalInfo?.name || 'A family member'} needs help!`,
+        location: latitude && longitude ? { latitude, longitude } : null,
+        timestamp: new Date()
+    }
+
+    // Broadcast SOS to all specified family groups
+    for (const groupId of groupIds) {
+        const groupMembers = familyGroupClients.get(groupId.toString())
+        if (groupMembers) {
+            groupMembers.forEach(memberSocketId => {
+                io.to(memberSocketId).emit('family_sos_alert', {
+                    groupId,
+                    ...sosData
+                })
+            })
+        }
+    }
+
+    console.log(`🚨 Family SOS from ${tourist.personalInfo?.name} sent to ${groupIds.length} groups`)
+}
+
+/**
+ * Handle check-in responses from family members
+ */
+const handleFamilyCheckInResponse = async (data, socketId, io) => {
+    const { touristId, groupId, alertId, response, latitude, longitude } = data
+    
+    if (!touristId || !groupId || !alertId) {
+        throw new Error('Missing required data for check-in response')
+    }
+
+    const tourist = await Tourist.findById(touristId).select('personalInfo.name digitalId')
+    if (!tourist) {
+        throw new Error('Tourist not found')
+    }
+
+    const checkInData = {
+        alertId,
+        touristId,
+        name: tourist.personalInfo?.name || 'Unknown',
+        response: response || 'I am safe',
+        location: latitude && longitude ? { latitude, longitude } : null,
+        timestamp: new Date()
+    }
+
+    // Broadcast check-in response to the family group
+    const groupMembers = familyGroupClients.get(groupId.toString())
+    if (groupMembers) {
+        groupMembers.forEach(memberSocketId => {
+            io.to(memberSocketId).emit('family_check_in_received', {
+                groupId,
+                ...checkInData
+            })
+        })
+    }
+
+    console.log(`✅ Check-in response from ${tourist.personalInfo?.name} in group ${groupId}`)
+}
+
 const handleLocationUpdate = async (data, socketId, io) => {
     const { touristId, latitude, longitude, accuracy, timestamp, speed, heading, altitude, batteryLevel, source } = data
     if (!touristId || !latitude || !longitude) {
@@ -479,11 +696,37 @@ const broadcastToAdmins = (io, event, data) => {
         io.to(socketId).emit(event, data)
     })
 }
+
+/**
+ * Broadcast to all members of a family group
+ */
+export const broadcastToFamilyGroup = (io, groupId, event, data) => {
+    const groupMembers = familyGroupClients.get(groupId.toString())
+    if (groupMembers) {
+        groupMembers.forEach(socketId => {
+            io.to(socketId).emit(event, data)
+        })
+    }
+}
+
+/**
+ * Notify specific family members
+ */
+export const notifyFamilyMembers = async (io, memberTouristIds, event, data) => {
+    memberTouristIds.forEach(touristId => {
+        const socketId = touristClients.get(touristId.toString())
+        if (socketId) {
+            io.to(socketId).emit(event, data)
+        }
+    })
+}
+
 export const getConnectedClientsInfo = () => {
     return {
         total: connectedClients.size,
         admins: adminClients.size,
         tourists: touristClients.size,
+        familyGroups: familyGroupClients.size,
         clients: Array.from(connectedClients.entries()).map(([socketId, info]) => ({
             socketId,
             ...info

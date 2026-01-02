@@ -56,6 +56,10 @@ const options = {
             {
                 name: '🔧 System Health',
                 description: 'System health monitoring and service status endpoints'
+            },
+            {
+                name: '👨‍👩‍👧‍👦 Family Tracking',
+                description: 'Family group management, real-time family location tracking, and family emergency alerts'
             }
         ],
         servers: [
@@ -483,6 +487,162 @@ const options = {
                                 manipuri: { type: 'string' }
                             }
                         }
+                    }
+                },
+                
+                // ==================== FAMILY TRACKING SCHEMAS ====================
+                FamilyGroup: {
+                    type: 'object',
+                    properties: {
+                        _id: { type: 'string', description: 'Unique family group ID' },
+                        name: { type: 'string', description: 'Name of the family group' },
+                        description: { type: 'string', description: 'Optional description' },
+                        createdBy: { type: 'string', description: 'Tourist ID of the creator' },
+                        inviteCode: { type: 'string', description: 'Current active invite code' },
+                        inviteCodeExpiry: { type: 'string', format: 'date-time', description: 'Invite code expiration' },
+                        memberCount: { type: 'integer', description: 'Number of members in the group' },
+                        settings: {
+                            type: 'object',
+                            properties: {
+                                allowMemberInvites: { type: 'boolean', default: false },
+                                requireApprovalToJoin: { type: 'boolean', default: true },
+                                shareLocationByDefault: { type: 'boolean', default: true },
+                                notifyOnEmergency: { type: 'boolean', default: true }
+                            }
+                        },
+                        isActive: { type: 'boolean', default: true },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        updatedAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                
+                FamilyMember: {
+                    type: 'object',
+                    properties: {
+                        _id: { type: 'string', description: 'Member record ID' },
+                        familyGroupId: { type: 'string', description: 'Reference to FamilyGroup' },
+                        touristId: { type: 'string', description: 'Reference to Tourist' },
+                        role: { 
+                            type: 'string', 
+                            enum: ['admin', 'guardian', 'member', 'child'],
+                            description: 'Member role in the group'
+                        },
+                        nickname: { type: 'string', description: 'Display name in the group' },
+                        relationship: { 
+                            type: 'string', 
+                            enum: ['parent', 'child', 'spouse', 'sibling', 'grandparent', 'grandchild', 'relative', 'friend', 'other']
+                        },
+                        status: { 
+                            type: 'string', 
+                            enum: ['active', 'pending', 'suspended'],
+                            default: 'active'
+                        },
+                        settings: {
+                            type: 'object',
+                            properties: {
+                                shareLocation: { type: 'boolean', default: true },
+                                receiveAlerts: { type: 'boolean', default: true },
+                                canViewOthersLocation: { type: 'boolean', default: true }
+                            }
+                        },
+                        lastKnownLocation: {
+                            type: 'object',
+                            properties: {
+                                type: { type: 'string', enum: ['Point'] },
+                                coordinates: { type: 'array', items: { type: 'number' } },
+                                timestamp: { type: 'string', format: 'date-time' },
+                                accuracy: { type: 'number' },
+                                batteryLevel: { type: 'number', minimum: 0, maximum: 100 }
+                            }
+                        },
+                        joinedAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                
+                FamilyInvite: {
+                    type: 'object',
+                    properties: {
+                        _id: { type: 'string', description: 'Invite ID' },
+                        familyGroupId: { type: 'string', description: 'Reference to FamilyGroup' },
+                        invitedBy: { type: 'string', description: 'Tourist ID of inviter' },
+                        invitedTouristId: { type: 'string', description: 'Tourist ID of invitee (if known)' },
+                        email: { type: 'string', format: 'email', description: 'Email of invitee' },
+                        phone: { type: 'string', description: 'Phone number of invitee' },
+                        role: { type: 'string', enum: ['admin', 'guardian', 'member', 'child'] },
+                        status: { type: 'string', enum: ['pending', 'accepted', 'declined', 'expired'] },
+                        message: { type: 'string', description: 'Personal message from inviter' },
+                        expiresAt: { type: 'string', format: 'date-time' },
+                        respondedAt: { type: 'string', format: 'date-time' },
+                        createdAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                
+                FamilyAlert: {
+                    type: 'object',
+                    properties: {
+                        _id: { type: 'string', description: 'Alert ID' },
+                        familyGroupId: { type: 'string', description: 'Reference to FamilyGroup' },
+                        triggeredBy: { type: 'string', description: 'Tourist ID who triggered alert' },
+                        alertType: { 
+                            type: 'string', 
+                            enum: ['sos', 'emergency', 'geofence_exit', 'low_battery', 'inactive', 'check_in_request', 'custom']
+                        },
+                        severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                        message: { type: 'string' },
+                        location: {
+                            type: 'object',
+                            properties: {
+                                type: { type: 'string', enum: ['Point'] },
+                                coordinates: { type: 'array', items: { type: 'number' } }
+                            }
+                        },
+                        status: { type: 'string', enum: ['active', 'acknowledged', 'resolved', 'expired'] },
+                        acknowledgedBy: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    memberId: { type: 'string' },
+                                    acknowledgedAt: { type: 'string', format: 'date-time' },
+                                    response: { type: 'string' }
+                                }
+                            }
+                        },
+                        expiresAt: { type: 'string', format: 'date-time' },
+                        createdAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                
+                FamilyLocationShare: {
+                    type: 'object',
+                    required: ['latitude', 'longitude'],
+                    properties: {
+                        latitude: { type: 'number', minimum: -90, maximum: 90 },
+                        longitude: { type: 'number', minimum: -180, maximum: 180 },
+                        accuracy: { type: 'number', description: 'GPS accuracy in meters' },
+                        batteryLevel: { type: 'number', minimum: 0, maximum: 100 }
+                    },
+                    example: {
+                        latitude: 26.1445,
+                        longitude: 91.7362,
+                        accuracy: 10,
+                        batteryLevel: 85
+                    }
+                },
+                
+                FamilySOSRequest: {
+                    type: 'object',
+                    properties: {
+                        latitude: { type: 'number', minimum: -90, maximum: 90 },
+                        longitude: { type: 'number', minimum: -180, maximum: 180 },
+                        message: { type: 'string', description: 'Emergency message' },
+                        alertType: { type: 'string', enum: ['emergency', 'sos', 'custom'], default: 'sos' }
+                    },
+                    example: {
+                        latitude: 26.1445,
+                        longitude: 91.7362,
+                        message: 'Need immediate assistance!',
+                        alertType: 'sos'
                     }
                 }
             }
@@ -2852,6 +3012,933 @@ const options = {
                         },
                         403: { description: 'Status updates require authority access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
                         400: { description: 'Status is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            
+            // ==================== FAMILY TRACKING API PATHS ====================
+            '/api/family/groups': {
+                post: {
+                    summary: 'Create a new family group',
+                    description: 'Create a new family group with the authenticated user as the creator and admin',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    required: ['name'],
+                                    properties: {
+                                        name: { type: 'string', description: 'Name of the family group', example: 'Smith Family' },
+                                        description: { type: 'string', description: 'Optional description', example: 'Our family vacation group' },
+                                        settings: {
+                                            type: 'object',
+                                            properties: {
+                                                allowMemberInvites: { type: 'boolean', default: false },
+                                                requireApprovalToJoin: { type: 'boolean', default: true },
+                                                shareLocationByDefault: { type: 'boolean', default: true },
+                                                notifyOnEmergency: { type: 'boolean', default: true }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Family group created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            group: { $ref: '#/components/schemas/FamilyGroup' },
+                                                            inviteCode: { type: 'string', description: 'Initial invite code' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Invalid input - name is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                },
+                get: {
+                    summary: 'Get my family groups',
+                    description: 'Retrieve all family groups the authenticated user is a member of',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Family groups retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            groups: {
+                                                                type: 'array',
+                                                                items: { $ref: '#/components/schemas/FamilyGroup' }
+                                                            },
+                                                            count: { type: 'integer' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/join': {
+                post: {
+                    summary: 'Join a family group using invite code',
+                    description: 'Join an existing family group using the invite code shared by group members',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    required: ['inviteCode'],
+                                    properties: {
+                                        inviteCode: { type: 'string', description: 'The invite code to join', example: 'ABC123XY' },
+                                        nickname: { type: 'string', description: 'Your display name in the group', example: 'Dad' },
+                                        relationship: { 
+                                            type: 'string', 
+                                            enum: ['parent', 'child', 'spouse', 'sibling', 'grandparent', 'grandchild', 'relative', 'friend', 'other'],
+                                            example: 'parent'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Successfully joined or join request sent',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            member: { $ref: '#/components/schemas/FamilyMember' },
+                                                            group: { $ref: '#/components/schemas/FamilyGroup' },
+                                                            status: { type: 'string', enum: ['joined', 'pending_approval'] }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Invalid or expired invite code, or already a member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}': {
+                get: {
+                    summary: 'Get family group details',
+                    description: 'Retrieve detailed information about a specific family group including members',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Family group details retrieved',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            group: { $ref: '#/components/schemas/FamilyGroup' },
+                                                            members: {
+                                                                type: 'array',
+                                                                items: { $ref: '#/components/schemas/FamilyMember' }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                },
+                put: {
+                    summary: 'Update family group settings',
+                    description: 'Update family group name, description, or settings (admin only)',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        name: { type: 'string' },
+                                        description: { type: 'string' },
+                                        settings: {
+                                            type: 'object',
+                                            properties: {
+                                                allowMemberInvites: { type: 'boolean' },
+                                                requireApprovalToJoin: { type: 'boolean' },
+                                                shareLocationByDefault: { type: 'boolean' },
+                                                notifyOnEmergency: { type: 'boolean' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'Group updated successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
+                        403: { description: 'Not an admin of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                },
+                delete: {
+                    summary: 'Delete family group',
+                    description: 'Delete a family group (creator only)',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    responses: {
+                        200: { description: 'Group deleted successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
+                        403: { description: 'Only the creator can delete the group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/invite-code': {
+                post: {
+                    summary: 'Generate new invite code',
+                    description: 'Generate or refresh the invite code for a family group (admin/guardian only)',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        expiryHours: { type: 'number', default: 24, description: 'Hours until the code expires' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Invite code generated',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            inviteCode: { type: 'string' },
+                                                            expiresAt: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: 'Not authorized to generate invite codes', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/invite': {
+                post: {
+                    summary: 'Invite a user to the group',
+                    description: 'Send an invitation to a user by email, phone, or tourist ID',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        email: { type: 'string', format: 'email' },
+                                        phone: { type: 'string' },
+                                        touristId: { type: 'string' },
+                                        role: { type: 'string', enum: ['admin', 'guardian', 'member', 'child'], default: 'member' },
+                                        relationship: { type: 'string', enum: ['parent', 'child', 'spouse', 'sibling', 'grandparent', 'grandchild', 'relative', 'friend', 'other'] },
+                                        message: { type: 'string', description: 'Personal message for the invitee' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Invitation sent successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            invite: { $ref: '#/components/schemas/FamilyInvite' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'At least one identifier required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        403: { description: 'Not authorized to invite members', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/members/{memberId}/approve': {
+                post: {
+                    summary: 'Approve or reject a pending member',
+                    description: 'Approve or reject a member who is waiting for approval (admin/guardian only)',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' },
+                        { name: 'memberId', in: 'path', required: true, schema: { type: 'string' }, description: 'Member ID to approve/reject' }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    required: ['approve'],
+                                    properties: {
+                                        approve: { type: 'boolean', description: 'True to approve, false to reject' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'Member approved/rejected successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
+                        403: { description: 'Not authorized to approve members', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Member not found or not pending', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/members/{memberId}': {
+                delete: {
+                    summary: 'Remove a member from the group',
+                    description: 'Remove a member from the family group (admin only, or self-removal)',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' },
+                        { name: 'memberId', in: 'path', required: true, schema: { type: 'string' }, description: 'Member ID to remove' }
+                    ],
+                    responses: {
+                        200: { description: 'Member removed successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
+                        403: { description: 'Not authorized to remove this member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Member not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/members/me': {
+                put: {
+                    summary: 'Update my member settings',
+                    description: 'Update your own settings within a family group (nickname, location sharing preferences)',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        nickname: { type: 'string' },
+                                        settings: {
+                                            type: 'object',
+                                            properties: {
+                                                shareLocation: { type: 'boolean' },
+                                                receiveAlerts: { type: 'boolean' },
+                                                canViewOthersLocation: { type: 'boolean' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Settings updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            member: { $ref: '#/components/schemas/FamilyMember' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/members/{memberId}/request-checkin': {
+                post: {
+                    summary: 'Request check-in from a family member',
+                    description: 'Send a check-in request notification to a family member',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' },
+                        { name: 'memberId', in: 'path', required: true, schema: { type: 'string' }, description: 'Member ID to request check-in from' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string', description: 'Optional message for the check-in request' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'Check-in request sent', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
+                        403: { description: 'Not authorized to request check-ins', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Member not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/locations': {
+                get: {
+                    summary: 'Get all family members locations',
+                    description: 'Retrieve the current locations of all family members who are sharing their location',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Family member locations retrieved',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            members: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        memberId: { type: 'string' },
+                                                                        touristId: { type: 'string' },
+                                                                        nickname: { type: 'string' },
+                                                                        role: { type: 'string' },
+                                                                        location: {
+                                                                            type: 'object',
+                                                                            properties: {
+                                                                                latitude: { type: 'number' },
+                                                                                longitude: { type: 'number' },
+                                                                                timestamp: { type: 'string', format: 'date-time' },
+                                                                                accuracy: { type: 'number' },
+                                                                                batteryLevel: { type: 'number' }
+                                                                            }
+                                                                        },
+                                                                        isOnline: { type: 'boolean' },
+                                                                        lastSeen: { type: 'string', format: 'date-time' }
+                                                                    }
+                                                                }
+                                                            },
+                                                            timestamp: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: 'Not a member or location viewing disabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/share-location': {
+                post: {
+                    summary: 'Share location with family group',
+                    description: 'Share your current location with all family group members',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/FamilyLocationShare' }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Location shared successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            location: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    latitude: { type: 'number' },
+                                                                    longitude: { type: 'number' },
+                                                                    timestamp: { type: 'string', format: 'date-time' }
+                                                                }
+                                                            },
+                                                            sharedWithCount: { type: 'integer' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Invalid coordinates', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        403: { description: 'Location sharing disabled for this member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/sos': {
+                post: {
+                    summary: 'Send SOS/Emergency alert to family',
+                    description: 'Send an emergency SOS alert to all family group members',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/FamilySOSRequest' }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'SOS alert sent successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            alert: { $ref: '#/components/schemas/FamilyAlert' },
+                                                            notifiedCount: { type: 'integer', description: 'Number of members notified' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/groups/{groupId}/alerts': {
+                get: {
+                    summary: 'Get family group alerts',
+                    description: 'Retrieve all alerts for a family group with optional filtering',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' },
+                        { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'acknowledged', 'resolved', 'expired'] }, description: 'Filter by alert status' },
+                        { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Number of alerts per page' },
+                        { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Alerts retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            alerts: {
+                                                                type: 'array',
+                                                                items: { $ref: '#/components/schemas/FamilyAlert' }
+                                                            },
+                                                            pagination: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    page: { type: 'integer' },
+                                                                    limit: { type: 'integer' },
+                                                                    total: { type: 'integer' },
+                                                                    totalPages: { type: 'integer' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/invites': {
+                get: {
+                    summary: 'Get my pending invitations',
+                    description: 'Retrieve all pending family group invitations for the authenticated user',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Invitations retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            invites: {
+                                                                type: 'array',
+                                                                items: { $ref: '#/components/schemas/FamilyInvite' }
+                                                            },
+                                                            count: { type: 'integer' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/family/invites/{inviteId}/respond': {
+                post: {
+                    summary: 'Respond to invitation',
+                    description: 'Accept or decline a family group invitation',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'inviteId', in: 'path', required: true, schema: { type: 'string' }, description: 'Invitation ID' }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    required: ['accept'],
+                                    properties: {
+                                        accept: { type: 'boolean', description: 'True to accept, false to decline' },
+                                        nickname: { type: 'string', description: 'Your nickname in the group (if accepting)' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Response recorded successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            status: { type: 'string', enum: ['accepted', 'declined'] },
+                                                            group: { $ref: '#/components/schemas/FamilyGroup' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: 'Invitation not found or expired', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/family/alerts/{alertId}/acknowledge': {
+                post: {
+                    summary: 'Acknowledge a family alert',
+                    description: 'Mark a family alert as acknowledged with an optional response',
+                    tags: ['👨‍👩‍👧‍👦 Family Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'alertId', in: 'path', required: true, schema: { type: 'string' }, description: 'Alert ID' }
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        response: { type: 'string', description: 'Optional response message' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Alert acknowledged successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            alert: { $ref: '#/components/schemas/FamilyAlert' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: 'Alert not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            
+            // ==================== MISSING TRACKING API PATHS ====================
+            '/api/tracking/config': {
+                get: {
+                    summary: 'Get tracking configuration',
+                    description: 'Retrieve tracking configuration settings for the frontend application',
+                    tags: ['🌐 Admin Website - Location Management'],
+                    responses: {
+                        200: {
+                            description: 'Configuration retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            updateInterval: { type: 'integer', description: 'Location update interval in seconds' },
+                                                            inactivityThreshold: { type: 'integer', description: 'Inactivity threshold in minutes' },
+                                                            mapSettings: { type: 'object' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/tracking/inactive-users': {
+                get: {
+                    summary: 'Get inactive users',
+                    description: 'Retrieve list of users who have been inactive for more than 10 minutes without location updates',
+                    tags: ['🌐 Admin Website - Location Management'],
+                    responses: {
+                        200: {
+                            description: 'Inactive users retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            inactiveUsers: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        touristId: { type: 'string' },
+                                                                        digitalId: { type: 'string' },
+                                                                        name: { type: 'string' },
+                                                                        lastLocation: {
+                                                                            type: 'object',
+                                                                            properties: {
+                                                                                latitude: { type: 'number' },
+                                                                                longitude: { type: 'number' },
+                                                                                timestamp: { type: 'string', format: 'date-time' }
+                                                                            }
+                                                                        },
+                                                                        inactiveMinutes: { type: 'number' }
+                                                                    }
+                                                                }
+                                                            },
+                                                            count: { type: 'integer' },
+                                                            threshold: { type: 'integer', description: 'Inactivity threshold in minutes' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

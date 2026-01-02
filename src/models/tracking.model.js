@@ -24,8 +24,8 @@ const locationHistorySchema = new mongoose.Schema({
     },
     timestamp: {
         type: Date,
-        default: Date.now,
-        index: true
+        default: Date.now
+        // Index defined via schema.index() below
     },
     accuracy: {
         type: Number,
