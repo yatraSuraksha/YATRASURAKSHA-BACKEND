@@ -64,8 +64,12 @@ const options = {
         ],
         servers: [
             {
-                url: 'http://74.225.144.0:3000',
-                description: 'Development server',
+                url: 'http://4.186.25.99:5000',
+                description: 'Production server',
+            },
+            {
+                url: 'http://localhost:5000',
+                description: 'Local development server',
             },
         ],
         components: {
