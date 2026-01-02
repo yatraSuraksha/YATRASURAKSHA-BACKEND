@@ -274,8 +274,10 @@ export const verifyFirebaseToken = async (req, res, next) => {
 
 export const optionalAuth = async (req, res, next) => {
     try {
+        console.log('🔐 optionalAuth: Starting token verification...');
         
         if (!auth) {
+            console.log('⚠️ optionalAuth: Firebase auth not initialized');
             req.user = null;
             return next();
         }
@@ -284,6 +286,7 @@ export const optionalAuth = async (req, res, next) => {
         
         
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('⚠️ optionalAuth: No Bearer token in Authorization header');
             req.user = null;
             return next();
         }
@@ -292,15 +295,21 @@ export const optionalAuth = async (req, res, next) => {
         
         
         if (!token || token === 'null' || token === 'undefined' || token.trim() === '') {
+            console.log('⚠️ optionalAuth: Token is empty or invalid');
             req.user = null;
             return next();
         }
         const tokenParts = token.split('.');
         if (tokenParts.length !== 3) {
+            console.log('⚠️ optionalAuth: Token is not a valid JWT format');
             req.user = null;
             return next();
         }
+        
+        console.log(`🔍 optionalAuth: Verifying token (length: ${token.length})...`);
         const decodedToken = await auth.verifyIdToken(token);
+        console.log(`✅ optionalAuth: Token verified for user ${decodedToken.email}`);
+        
         req.user = {
             uid: decodedToken.uid,
             email: decodedToken.email,
@@ -312,8 +321,8 @@ export const optionalAuth = async (req, res, next) => {
 
         next();
     } catch (error) {
-        
-        
+        console.error('❌ optionalAuth: Token verification failed:', error.message);
+        console.error('❌ optionalAuth: Error code:', error.code);
         req.user = null;
         next();
     }

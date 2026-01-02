@@ -120,7 +120,7 @@ router.post("/debug-token", async (req, res) => {
     }
 });
 
-router.post("/verify", optionalAuth, verifyToken);
+router.post("/verify", verifyFirebaseToken, verifyToken);
 router.get("/me", verifyFirebaseToken, getCurrentUser);
 router.get("/profile", getTouristProfile);
 router.put("/profile", verifyFirebaseToken, updateTouristProfile);
