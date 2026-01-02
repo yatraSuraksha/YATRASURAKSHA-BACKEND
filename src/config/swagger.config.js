@@ -60,6 +60,10 @@ const options = {
             {
                 name: '👨‍👩‍👧‍👦 Family Tracking',
                 description: 'Family group management, real-time family location tracking, and family emergency alerts'
+            },
+            {
+                name: '🗺️ Maps',
+                description: 'Azure Maps API endpoints for geocoding, routing, POI search, and location services'
             }
         ],
         servers: [
