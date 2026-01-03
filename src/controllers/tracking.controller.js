@@ -377,9 +377,10 @@ export const getActiveAlerts = async (req, res) => {
 export const acknowledgeAlert = async (req, res) => {
     try {
         const { alertId } = req.params
-        const { acknowledgedBy, response } = req.body
+        const { acknowledgedBy = 'admin', response = 'Alert acknowledged' } = req.body || {}
 
-        const alert = await Alert.findOneAndUpdate(
+        // Try to find and update by alertId field first
+        let alert = await Alert.findOneAndUpdate(
             { alertId },
             {
                 'acknowledgment.isAcknowledged': true,
@@ -389,6 +390,23 @@ export const acknowledgeAlert = async (req, res) => {
             },
             { new: true }
         )
+
+        // If not found by alertId, try by _id (MongoDB ObjectId)
+        if (!alert) {
+            const mongoose = await import('mongoose');
+            if (mongoose.default.Types.ObjectId.isValid(alertId)) {
+                alert = await Alert.findByIdAndUpdate(
+                    alertId,
+                    {
+                        'acknowledgment.isAcknowledged': true,
+                        'acknowledgment.acknowledgedBy': acknowledgedBy,
+                        'acknowledgment.acknowledgedAt': new Date(),
+                        'acknowledgment.response': response
+                    },
+                    { new: true }
+                )
+            }
+        }
 
         if (!alert) {
             return res.status(404).json({
@@ -400,7 +418,7 @@ export const acknowledgeAlert = async (req, res) => {
         res.json({
             success: true,
             message: 'Alert acknowledged successfully',
-            data: { alertId }
+            data: { alertId: alert.alertId || alertId }
         })
 
     } catch (error) {

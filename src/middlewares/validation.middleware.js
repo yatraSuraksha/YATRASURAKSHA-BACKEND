@@ -184,7 +184,14 @@ export const validateAlertExists = async (req, res, next) => {
             });
         }
 
-        const alert = await Alert.findOne({ alertId });
+        // Try to find by alertId field first, then by _id
+        let alert = await Alert.findOne({ alertId });
+        
+        // If not found by alertId, try finding by _id (MongoDB ObjectId)
+        if (!alert && mongoose.Types.ObjectId.isValid(alertId)) {
+            alert = await Alert.findById(alertId);
+        }
+        
         if (!alert) {
             return res.status(404).json({
                 success: false,
