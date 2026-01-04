@@ -76,12 +76,8 @@ const options = {
                 description: 'Current server (relative)',
             },
             {
-                url: 'http://4.186.25.99:3000',
+                url: 'http://yatra-suraksha.n5n.live:3000',
                 description: 'Production server',
-            },
-            {
-                url: 'http://localhost:3000',
-                description: 'Local development server',
             },
         ],
         components: {
