@@ -462,8 +462,9 @@ export const getProfileStatus = async (req, res) => {
                 description: 'At least one emergency contact'
             },
             'currentLocation': {
-                isComplete: touristProfile.currentLocation.coordinates[0] !== 77.2090 || 
-                           touristProfile.currentLocation.coordinates[1] !== 28.6139,
+                isComplete: touristProfile.currentLocation?.coordinates?.length === 2 &&
+                           (touristProfile.currentLocation.coordinates[0] !== 77.2090 || 
+                           touristProfile.currentLocation.coordinates[1] !== 28.6139),
                 priority: 'medium',
                 description: 'Current location for safety monitoring'
             }

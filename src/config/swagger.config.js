@@ -799,28 +799,9 @@ const options = {
             '/api/users/profile': {
                 get: {
                     summary: 'Get tourist profile',
-                    description: 'Retrieve tourist profile information. Can be used with authentication or by providing query parameters.',
+                    description: 'Retrieve tourist profile information. Requires Firebase authentication.',
                     tags: ['📱 Mobile App - Profile Management'],
-                    parameters: [
-                        {
-                            name: 'firebaseUid',
-                            in: 'query',
-                            schema: { type: 'string' },
-                            description: 'Firebase UID of the tourist (if not authenticated)'
-                        },
-                        {
-                            name: 'digitalId',
-                            in: 'query',
-                            schema: { type: 'string' },
-                            description: 'Digital ID of the tourist (if not authenticated)'
-                        },
-                        {
-                            name: 'email',
-                            in: 'query',
-                            schema: { type: 'string' },
-                            description: 'Email of the tourist (if not authenticated)'
-                        }
-                    ],
+                    security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
                             description: 'Tourist profile retrieved successfully',
@@ -836,7 +817,7 @@ const options = {
                                                         type: 'object',
                                                         properties: {
                                                             profile: {
-                                                                $ref: '#/components/schemas/User'
+                                                                $ref: '#/components/schemas/Tourist'
                                                             }
                                                         }
                                                     }
@@ -847,7 +828,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Missing identifier - provide firebaseUid, digitalId, or email', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized - Authentication required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
                         404: { description: 'Profile not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
                     }
                 },
@@ -1037,7 +1018,6 @@ const options = {
                     summary: 'Check OCR service health',
                     description: 'Check if OCR service is running and configured properly',
                     tags: ['🔧 System Health'],
-                    security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
                             description: 'OCR service status',
@@ -1048,6 +1028,7 @@ const options = {
                                         properties: {
                                             success: { type: 'boolean' },
                                             message: { type: 'string' },
+                                            timestamp: { type: 'string', format: 'date-time' },
                                             services: {
                                                 type: 'object',
                                                 properties: {
@@ -2358,158 +2339,6 @@ const options = {
                                 }
                             }
                         }
-                    }
-                }
-            },
-            '/api/tracking/geofences/{fenceId}': {
-                put: {
-                    summary: 'Update geofence',
-                    description: 'Update an existing geofence',
-                    tags: ['🌐 Admin Website - Geofencing'],
-                    security: [{ FirebaseAuth: [] }],
-                    parameters: [
-                        {
-                            name: 'fenceId',
-                            in: 'path',
-                            required: true,
-                            schema: { type: 'string' },
-                            description: 'Geofence ID'
-                        }
-                    ],
-                    requestBody: {
-                        required: true,
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        name: { type: 'string' },
-                                        type: { type: 'string', enum: ['safe_zone', 'danger_zone', 'restricted_area'] },
-                                        description: { type: 'string' },
-                                        isActive: { type: 'boolean' }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    responses: {
-                        200: {
-                            description: 'Geofence updated successfully',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        allOf: [
-                                            { $ref: '#/components/schemas/SuccessResponse' },
-                                            {
-                                                type: 'object',
-                                                properties: {
-                                                    data: {
-                                                        type: 'object',
-                                                        properties: {
-                                                            id: { type: 'string' },
-                                                            name: { type: 'string' },
-                                                            type: { type: 'string' }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        },
-                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
-                    }
-                },
-                delete: {
-                    summary: 'Delete geofence',
-                    description: 'Delete an existing geofence',
-                    tags: ['🌐 Admin Website - Geofencing'],
-                    security: [{ FirebaseAuth: [] }],
-                    parameters: [
-                        {
-                            name: 'fenceId',
-                            in: 'path',
-                            required: true,
-                            schema: { type: 'string' },
-                            description: 'Geofence ID'
-                        }
-                    ],
-                    responses: {
-                        200: {
-                            description: 'Geofence deleted successfully',
-                            content: {
-                                'application/json': {
-                                    schema: { $ref: '#/components/schemas/SuccessResponse' }
-                                }
-                            }
-                        },
-                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
-                    }
-                }
-            },
-            '/api/tracking/tourists/all': {
-                get: {
-                    summary: 'Get all tourists with locations',
-                    description: 'Retrieve all tourists with their basic information and current locations',
-                    tags: ['🌐 Admin Website - Location Management'],
-                    responses: {
-                        200: {
-                            description: 'All tourists retrieved successfully',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        allOf: [
-                                            { $ref: '#/components/schemas/SuccessResponse' },
-                                            {
-                                                type: 'object',
-                                                properties: {
-                                                    data: {
-                                                        type: 'object',
-                                                        properties: {
-                                                            tourists: {
-                                                                type: 'array',
-                                                                items: {
-                                                                    type: 'object',
-                                                                    properties: {
-                                                                        id: { type: 'string' },
-                                                                        digitalId: { type: 'string' },
-                                                                        name: { type: 'string' },
-                                                                        email: { type: 'string' },
-                                                                        phone: { type: 'string' },
-                                                                        nationality: { type: 'string' },
-                                                                        currentLocation: {
-                                                                            oneOf: [
-                                                                                {
-                                                                                    type: 'object',
-                                                                                    properties: {
-                                                                                        latitude: { type: 'number' },
-                                                                                        longitude: { type: 'number' },
-                                                                                        lastUpdate: { type: 'string', format: 'date-time' }
-                                                                                    }
-                                                                                },
-                                                                                { type: 'null' }
-                                                                            ]
-                                                                        },
-                                                                        isActive: { type: 'boolean' },
-                                                                        status: { type: 'string' },
-                                                                        createdAt: { type: 'string', format: 'date-time' }
-                                                                    }
-                                                                }
-                                                            },
-                                                            count: { type: 'integer' }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        },
-                        404: { description: 'No tourists found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
                     }
                 }
             },
@@ -3963,6 +3792,705 @@ const options = {
                                 }
                             }
                         }
+                    }
+                }
+            },
+            
+            // ==================== MAPS API PATHS ====================
+            '/api/maps/config': {
+                get: {
+                    summary: 'Get maps configuration',
+                    description: 'Get Azure Maps configuration for the frontend',
+                    tags: ['🗺️ Maps'],
+                    responses: {
+                        200: {
+                            description: 'Maps configuration retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            subscriptionKey: { type: 'string' },
+                                                            clientId: { type: 'string' },
+                                                            region: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/maps/geocode': {
+                get: {
+                    summary: 'Geocode address',
+                    description: 'Convert address to coordinates using Azure Maps',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'address', in: 'query', required: true, schema: { type: 'string' }, description: 'Address to geocode' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Geocoding successful',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            latitude: { type: 'number' },
+                                                            longitude: { type: 'number' },
+                                                            formattedAddress: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Address is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/reverse-geocode': {
+                get: {
+                    summary: 'Reverse geocode coordinates',
+                    description: 'Convert coordinates to address using Azure Maps',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'lat', in: 'query', required: true, schema: { type: 'number' }, description: 'Latitude' },
+                        { name: 'lng', in: 'query', required: true, schema: { type: 'number' }, description: 'Longitude' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Reverse geocoding successful',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            address: { type: 'string' },
+                                                            city: { type: 'string' },
+                                                            country: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/search/poi': {
+                get: {
+                    summary: 'Search points of interest',
+                    description: 'Search for nearby points of interest using Azure Maps',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'query', in: 'query', required: true, schema: { type: 'string' }, description: 'Search query (e.g., "restaurant", "hotel")' },
+                        { name: 'lat', in: 'query', required: true, schema: { type: 'number' }, description: 'Latitude for search center' },
+                        { name: 'lng', in: 'query', required: true, schema: { type: 'number' }, description: 'Longitude for search center' },
+                        { name: 'radius', in: 'query', schema: { type: 'number', default: 5000 }, description: 'Search radius in meters' },
+                        { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 }, description: 'Maximum results to return' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'POI search successful',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            results: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        name: { type: 'string' },
+                                                                        address: { type: 'string' },
+                                                                        latitude: { type: 'number' },
+                                                                        longitude: { type: 'number' },
+                                                                        category: { type: 'string' },
+                                                                        distance: { type: 'number' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Missing required parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/search/emergency': {
+                get: {
+                    summary: 'Search emergency services',
+                    description: 'Search for nearby emergency services (hospitals, police stations, fire stations)',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'lat', in: 'query', required: true, schema: { type: 'number' }, description: 'Latitude' },
+                        { name: 'lng', in: 'query', required: true, schema: { type: 'number' }, description: 'Longitude' },
+                        { name: 'type', in: 'query', schema: { type: 'string', enum: ['hospital', 'police', 'fire'] }, description: 'Type of emergency service' },
+                        { name: 'radius', in: 'query', schema: { type: 'number', default: 10000 }, description: 'Search radius in meters' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Emergency services search successful',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            services: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        name: { type: 'string' },
+                                                                        type: { type: 'string' },
+                                                                        address: { type: 'string' },
+                                                                        phone: { type: 'string' },
+                                                                        latitude: { type: 'number' },
+                                                                        longitude: { type: 'number' },
+                                                                        distance: { type: 'number' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/route': {
+                get: {
+                    summary: 'Get route between two points',
+                    description: 'Calculate route between origin and destination using Azure Maps',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'originLat', in: 'query', required: true, schema: { type: 'number' }, description: 'Origin latitude' },
+                        { name: 'originLng', in: 'query', required: true, schema: { type: 'number' }, description: 'Origin longitude' },
+                        { name: 'destLat', in: 'query', required: true, schema: { type: 'number' }, description: 'Destination latitude' },
+                        { name: 'destLng', in: 'query', required: true, schema: { type: 'number' }, description: 'Destination longitude' },
+                        { name: 'travelMode', in: 'query', schema: { type: 'string', enum: ['car', 'pedestrian', 'bicycle'], default: 'car' }, description: 'Mode of travel' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Route calculated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            distance: { type: 'number', description: 'Distance in meters' },
+                                                            duration: { type: 'number', description: 'Duration in seconds' },
+                                                            coordinates: { type: 'array', items: { type: 'array', items: { type: 'number' } } }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Missing required coordinates', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/distance': {
+                get: {
+                    summary: 'Calculate distance between points',
+                    description: 'Calculate straight-line distance between two geographic points',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'lat1', in: 'query', required: true, schema: { type: 'number' }, description: 'First point latitude' },
+                        { name: 'lng1', in: 'query', required: true, schema: { type: 'number' }, description: 'First point longitude' },
+                        { name: 'lat2', in: 'query', required: true, schema: { type: 'number' }, description: 'Second point latitude' },
+                        { name: 'lng2', in: 'query', required: true, schema: { type: 'number' }, description: 'Second point longitude' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Distance calculated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            distanceKm: { type: 'number' },
+                                                            distanceM: { type: 'number' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'All coordinates are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/geofence/check': {
+                post: {
+                    summary: 'Check if point is in geofence',
+                    description: 'Check if a given point is within a specified geofence',
+                    tags: ['🗺️ Maps'],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    required: ['latitude', 'longitude', 'geofenceId'],
+                                    properties: {
+                                        latitude: { type: 'number' },
+                                        longitude: { type: 'number' },
+                                        geofenceId: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Geofence check completed',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            isInside: { type: 'boolean' },
+                                                            geofenceName: { type: 'string' },
+                                                            distance: { type: 'number', description: 'Distance from geofence center in meters' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Missing required parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/timezone': {
+                get: {
+                    summary: 'Get timezone for location',
+                    description: 'Get timezone information for a specific location',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'lat', in: 'query', required: true, schema: { type: 'number' }, description: 'Latitude' },
+                        { name: 'lng', in: 'query', required: true, schema: { type: 'number' }, description: 'Longitude' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Timezone retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            timezone: { type: 'string' },
+                                                            offset: { type: 'string' },
+                                                            localTime: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/maps/weather': {
+                get: {
+                    summary: 'Get weather for location',
+                    description: 'Get current weather information for a specific location',
+                    tags: ['🗺️ Maps'],
+                    parameters: [
+                        { name: 'lat', in: 'query', required: true, schema: { type: 'number' }, description: 'Latitude' },
+                        { name: 'lng', in: 'query', required: true, schema: { type: 'number' }, description: 'Longitude' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Weather information retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            temperature: { type: 'number' },
+                                                            humidity: { type: 'number' },
+                                                            description: { type: 'string' },
+                                                            windSpeed: { type: 'number' },
+                                                            icon: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            
+            // ==================== VIDEO API PATHS ====================
+            '/api/videos/upload': {
+                post: {
+                    summary: 'Upload a single video',
+                    description: 'Upload a video file to the server. Maximum file size is 500MB.',
+                    tags: ['🎥 Video Management'],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'multipart/form-data': {
+                                schema: {
+                                    type: 'object',
+                                    required: ['video'],
+                                    properties: {
+                                        video: { type: 'string', format: 'binary', description: 'Video file (MP4, AVI, MOV, MKV, WEBM)' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Video uploaded successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            videoId: { type: 'string' },
+                                                            filename: { type: 'string' },
+                                                            size: { type: 'number' },
+                                                            mimeType: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Invalid file type or missing file', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/videos/upload-multiple': {
+                post: {
+                    summary: 'Upload multiple videos',
+                    description: 'Upload multiple video files at once. Maximum 10 files, 500MB each.',
+                    tags: ['🎥 Video Management'],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'multipart/form-data': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        videos: { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Video files' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Videos uploaded successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            videos: { type: 'array', items: { type: 'object' } },
+                                                            count: { type: 'integer' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Invalid files or no files provided', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/videos': {
+                get: {
+                    summary: 'List all videos',
+                    description: 'Retrieve a list of all uploaded videos with pagination',
+                    tags: ['🎥 Video Management'],
+                    parameters: [
+                        { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+                        { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Videos per page' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Videos list retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            videos: { type: 'array', items: { type: 'object' } },
+                                                            pagination: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    page: { type: 'integer' },
+                                                                    limit: { type: 'integer' },
+                                                                    total: { type: 'integer' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/videos/{videoId}/stream': {
+                get: {
+                    summary: 'Stream video',
+                    description: 'Stream a video file with support for range requests (seeking)',
+                    tags: ['🎥 Video Management'],
+                    parameters: [
+                        { name: 'videoId', in: 'path', required: true, schema: { type: 'string' }, description: 'Video ID or filename' }
+                    ],
+                    responses: {
+                        200: { description: 'Video stream' },
+                        206: { description: 'Partial content (range request)' },
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/videos/{videoId}/download': {
+                get: {
+                    summary: 'Download video',
+                    description: 'Download a video file',
+                    tags: ['🎥 Video Management'],
+                    parameters: [
+                        { name: 'videoId', in: 'path', required: true, schema: { type: 'string' }, description: 'Video ID or filename' }
+                    ],
+                    responses: {
+                        200: { description: 'Video file download' },
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/videos/{videoId}/info': {
+                get: {
+                    summary: 'Get video info',
+                    description: 'Get metadata and information about a specific video',
+                    tags: ['🎥 Video Management'],
+                    parameters: [
+                        { name: 'videoId', in: 'path', required: true, schema: { type: 'string' }, description: 'Video ID or filename' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Video info retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            videoId: { type: 'string' },
+                                                            filename: { type: 'string' },
+                                                            size: { type: 'number' },
+                                                            mimeType: { type: 'string' },
+                                                            createdAt: { type: 'string', format: 'date-time' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/videos/{videoId}': {
+                delete: {
+                    summary: 'Delete video',
+                    description: 'Delete a video file from the server',
+                    tags: ['🎥 Video Management'],
+                    parameters: [
+                        { name: 'videoId', in: 'path', required: true, schema: { type: 'string' }, description: 'Video ID or filename' }
+                    ],
+                    responses: {
+                        200: { description: 'Video deleted successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            
+            // ==================== LOCATION HISTORY ALTERNATE ENDPOINT ====================
+            '/api/tracking/location/history/my': {
+                get: {
+                    summary: 'Get my location history (alternate)',
+                    description: 'Alternate endpoint for retrieving the current user\'s location history',
+                    tags: ['📱 Mobile App - Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        { name: 'startDate', in: 'query', schema: { type: 'string', format: 'date' }, description: 'Start date (YYYY-MM-DD)' },
+                        { name: 'endDate', in: 'query', schema: { type: 'string', format: 'date' }, description: 'End date (YYYY-MM-DD)' },
+                        { name: 'limit', in: 'query', schema: { type: 'integer' }, description: 'Maximum records to return' }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Location history retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            history: { type: 'array', items: { type: 'object' } }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
                     }
                 }
             }
