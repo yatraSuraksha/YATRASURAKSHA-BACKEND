@@ -592,7 +592,7 @@ export const getEmergencyAlerts = async (req, res) => {
 
         // Get alerts with tourist information
         const alerts = await Alert.find(filter)
-            .populate('touristId', 'digitalId personalInfo.name personalInfo.email personalInfo.phone')
+            .populate('touristId', 'digitalId personalInfo currentLocation status emergencyContacts safetyScore devices riskProfile')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(parseInt(limit))
@@ -601,7 +601,7 @@ export const getEmergencyAlerts = async (req, res) => {
         // Get total count for pagination
         const totalAlerts = await Alert.countDocuments(filter);
 
-        // Format the response
+        // Format the response with comprehensive tourist info for authorities
         const formattedAlerts = alerts.map(alert => ({
             id: alert._id,
             alertId: alert.alertId,
@@ -617,10 +617,35 @@ export const getEmergencyAlerts = async (req, res) => {
                 digitalId: alert.touristId.digitalId,
                 name: alert.touristId.personalInfo?.name,
                 email: alert.touristId.personalInfo?.email,
-                phone: alert.touristId.personalInfo?.phone
+                phone: alert.touristId.personalInfo?.phone,
+                nationality: alert.touristId.personalInfo?.nationality,
+                gender: alert.touristId.personalInfo?.gender,
+                profilePicture: alert.touristId.personalInfo?.profilePicture,
+                status: alert.touristId.status,
+                safetyScore: alert.touristId.safetyScore,
+                currentLocation: alert.touristId.currentLocation ? {
+                    latitude: alert.touristId.currentLocation.coordinates?.[1],
+                    longitude: alert.touristId.currentLocation.coordinates?.[0],
+                    address: alert.touristId.currentLocation.address,
+                    lastUpdated: alert.touristId.currentLocation.timestamp
+                } : null,
+                emergencyContacts: alert.touristId.emergencyContacts?.map(c => ({
+                    name: c.name,
+                    phone: c.phone,
+                    relationship: c.relationship,
+                    isPrimary: c.isPrimary
+                })) || [],
+                devices: alert.touristId.devices?.filter(d => d.isActive).map(d => ({
+                    type: d.deviceType,
+                    batteryLevel: d.batteryLevel,
+                    lastSeen: d.lastSeen
+                })) || [],
+                medicalConditions: alert.touristId.riskProfile?.medicalConditions || [],
+                specialNeeds: alert.touristId.riskProfile?.specialNeeds || []
             } : null,
             acknowledgment: alert.acknowledgment,
             metadata: alert.metadata,
+            notifications: alert.notifications,
             createdAt: alert.createdAt,
             updatedAt: alert.updatedAt
         }));
