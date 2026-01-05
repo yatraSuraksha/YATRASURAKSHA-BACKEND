@@ -10,7 +10,11 @@ import {
     streamVideo,
     downloadVideo,
     getVideoInfo,
-    deleteVideo
+    deleteVideo,
+    getVideosByUser,
+    getMyVideos,
+    adminDeleteVideo,
+    getVideoStats
 } from '../controllers/video.controller.js';
 import { verifyFirebaseToken } from '../middlewares/auth.middleware.js';
 
@@ -410,6 +414,145 @@ router.get('/info/:filename', getVideoInfo);
  *         description: Server error
  */
 router.delete('/:filename', verifyFirebaseToken, deleteVideo);
+
+/**
+ * @swagger
+ * /api/videos/user/{userId}:
+ *   get:
+ *     summary: Get videos by user ID
+ *     description: Get all videos uploaded by a specific user/tourist
+ *     tags: [🎥 Video Management]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Firebase UID of the user
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of videos per page
+ *     responses:
+ *       200:
+ *         description: Videos retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: number
+ *                 total:
+ *                   type: number
+ *                 userId:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Server error
+ */
+router.get('/user/:userId', getVideosByUser);
+
+/**
+ * @swagger
+ * /api/videos/my:
+ *   get:
+ *     summary: Get my videos
+ *     description: Get all videos uploaded by the authenticated user
+ *     tags: [🎥 Video Management]
+ *     security:
+ *       - FirebaseAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Videos retrieved successfully
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Server error
+ */
+router.get('/my', verifyFirebaseToken, getMyVideos);
+
+/**
+ * @swagger
+ * /api/videos/stats:
+ *   get:
+ *     summary: Get video statistics
+ *     description: Get overall video statistics including total count and size
+ *     tags: [🎥 Video Management]
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalVideos:
+ *                       type: number
+ *                     totalSize:
+ *                       type: number
+ *                     totalSizeFormatted:
+ *                       type: string
+ *       500:
+ *         description: Server error
+ */
+router.get('/stats', getVideoStats);
+
+/**
+ * @swagger
+ * /api/videos/admin/{filename}:
+ *   delete:
+ *     summary: Admin delete video
+ *     description: Delete any video (admin only)
+ *     tags: [🎥 Video Management]
+ *     security:
+ *       - FirebaseAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Video deleted successfully
+ *       404:
+ *         description: Video not found
+ *       500:
+ *         description: Server error
+ */
+router.delete('/admin/:filename', verifyFirebaseToken, adminDeleteVideo);
 
 // Error handling middleware for multer errors
 router.use((error, req, res, next) => {

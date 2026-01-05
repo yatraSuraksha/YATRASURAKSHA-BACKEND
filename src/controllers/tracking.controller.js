@@ -1449,6 +1449,7 @@ export const getAllTouristsWithLocations = async (req, res) => {
         // Format the response data
         const formattedTourists = tourists.map(tourist => ({
             id: tourist._id,
+            firebaseUid: tourist.firebaseUid,
             digitalId: tourist.digitalId,
             name: tourist.personalInfo?.name || 'Unknown',
             email: tourist.personalInfo?.email,
