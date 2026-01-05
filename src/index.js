@@ -29,27 +29,17 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // SSL Certificate paths
-const SSL_KEY_PATH = '/etc/letsencrypt/live/yatra-suraksha.n5n.live/privkey.pem'
-const SSL_CERT_PATH = '/etc/letsencrypt/live/yatra-suraksha.n5n.live/fullchain.pem'
 
-// Check if SSL certificates exist
-const sslEnabled = fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)
+// Check if SSL certificates exist AND we're not in development mode
+const sslEnabled = process.env.NODE_ENV !== 'development' && fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)
 
 const app = express()
 
 // Create HTTP or HTTPS server based on SSL availability
 let server
-if (sslEnabled) {
-    const sslOptions = {
-        key: fs.readFileSync(SSL_KEY_PATH),
-        cert: fs.readFileSync(SSL_CERT_PATH)
-    }
-    server = createHttpsServer(sslOptions, app)
-    console.log('🔒 SSL certificates found - HTTPS enabled')
-} else {
-    server = createServer(app)
-    console.log('⚠️  SSL certificates not found - Running HTTP only')
-}
+
+server = createServer(app)
+    
 
 const io = new Server(server, {
     cors: {
