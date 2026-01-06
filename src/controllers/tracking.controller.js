@@ -337,7 +337,7 @@ export const getActiveAlerts = async (req, res) => {
         const alerts = await Alert.find({
             'acknowledgment.isAcknowledged': false
         })
-        .populate('touristId', 'name phone nationality')
+        .populate('touristId', 'personalInfo.name personalInfo.phone personalInfo.email currentLocation digitalId')
         .sort({ createdAt: -1 })
         .limit(100)
         .lean()
@@ -345,7 +345,13 @@ export const getActiveAlerts = async (req, res) => {
         const formattedAlerts = alerts.map(alert => ({
             id: alert._id,
             alertId: alert.alertId,
-            tourist: alert.touristId,
+            tourist: alert.touristId ? {
+                name: alert.touristId.personalInfo?.name || 'Unknown',
+                phone: alert.touristId.personalInfo?.phone || null,
+                email: alert.touristId.personalInfo?.email || null,
+                digitalId: alert.touristId.digitalId || null,
+                currentLocation: alert.touristId.currentLocation || null
+            } : null,
             type: alert.type,
             severity: alert.severity,
             message: alert.message,
