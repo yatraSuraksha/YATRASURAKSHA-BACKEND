@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import { LocationHistory, Alert, Device } from '../models/tracking.model.js'
 import Tourist from '../models/tourist.model.js'
 import GeoFence from '../models/geoFence.model.js'
@@ -110,8 +111,10 @@ export const getLocationHistory = async (req, res) => {
         const { touristId } = req.params
         const { limit = 0, hours = 720 } = req.query // Default: no limit, 30 days of history
 
-        // Validate if tourist exists
+        // Validate if tourist exists - only fetch name for performance
         const tourist = await Tourist.findById(touristId)
+            .select('personalInfo.name')
+            .lean()
         if (!tourist) {
             return res.status(404).json({
                 success: false,
@@ -120,22 +123,41 @@ export const getLocationHistory = async (req, res) => {
         }
 
         const startTime = new Date(Date.now() - hours * 60 * 60 * 1000)
+        const limitNum = parseInt(limit) || 0
 
-        // Build query
-        let query = LocationHistory.find({
-            touristId,
-            timestamp: { $gte: startTime }
-        })
-        .sort({ timestamp: -1 })
-        
-        // Only apply limit if it's greater than 0
-        const limitNum = parseInt(limit)
+        // Use aggregation pipeline for better performance with large datasets
+        const pipeline = [
+            {
+                $match: {
+                    touristId: new mongoose.Types.ObjectId(touristId),
+                    timestamp: { $gte: startTime }
+                }
+            },
+            { $sort: { timestamp: -1 } },
+            // Project only needed fields for performance
+            {
+                $project: {
+                    _id: 1,
+                    'location.coordinates': 1,
+                    timestamp: 1,
+                    accuracy: 1,
+                    speed: 1,
+                    heading: 1,
+                    altitude: 1,
+                    batteryLevel: 1,
+                    source: 1
+                }
+            }
+        ]
+
+        // Only add limit stage if limit > 0
         if (limitNum > 0) {
-            query = query.limit(limitNum)
+            pipeline.push({ $limit: limitNum })
         }
-        
-        const locations = await query.lean()
 
+        const locations = await LocationHistory.aggregate(pipeline).allowDiskUse(true)
+
+        // Format locations efficiently
         const formattedLocations = locations.map(loc => ({
             id: loc._id,
             latitude: loc.location.coordinates[1],
