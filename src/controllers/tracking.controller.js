@@ -108,7 +108,7 @@ export const updateLocation = async (req, res) => {
 export const getLocationHistory = async (req, res) => {
     try {
         const { touristId } = req.params
-        const { limit = 100, hours = 24 } = req.query
+        const { limit = 0, hours = 720 } = req.query // Default: no limit, 30 days of history
 
         // Validate if tourist exists
         const tourist = await Tourist.findById(touristId)
@@ -121,13 +121,20 @@ export const getLocationHistory = async (req, res) => {
 
         const startTime = new Date(Date.now() - hours * 60 * 60 * 1000)
 
-        const locations = await LocationHistory.find({
+        // Build query
+        let query = LocationHistory.find({
             touristId,
             timestamp: { $gte: startTime }
         })
         .sort({ timestamp: -1 })
-        .limit(parseInt(limit))
-        .lean()
+        
+        // Only apply limit if it's greater than 0
+        const limitNum = parseInt(limit)
+        if (limitNum > 0) {
+            query = query.limit(limitNum)
+        }
+        
+        const locations = await query.lean()
 
         const formattedLocations = locations.map(loc => ({
             id: loc._id,
