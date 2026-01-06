@@ -305,10 +305,11 @@ export const validateLocationHistoryParams = (req, res, next) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 10000) {
+    // Allow limit=0 for unlimited results, otherwise between 1 and 10000
+    if (isNaN(limitNum) || limitNum < 0 || limitNum > 10000) {
         return res.status(400).json({
             success: false,
-            message: 'Limit must be between 1 and 10000'
+            message: 'Limit must be between 0 and 10000 (0 for unlimited)'
         });
     }
     
