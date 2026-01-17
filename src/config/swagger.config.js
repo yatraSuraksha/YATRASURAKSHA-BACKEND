@@ -11,7 +11,7 @@ const options = {
         tags: [
             {
                 name: '🔐 Mobile App - Authentication',
-                description: 'Firebase authentication endpoints for mobile app users'
+                description: 'Authentication endpoints supporting both Firebase (Flutter) and Clerk (React Native). Use `X-Is-Clerk: true` header for Clerk authentication.'
             },
             {
                 name: '📱 Mobile App - Profile Management',
@@ -98,7 +98,13 @@ const options = {
                     type: 'http',
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
-                    description: 'Firebase ID Token'
+                    description: 'Firebase ID Token (default for Flutter app)'
+                },
+                ClerkAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Clerk Session Token (for React Native app). Requires `X-Is-Clerk: true` header or `isClerk: true` in body.'
                 },
                 BearerAuth: {
                     type: 'http',
@@ -107,8 +113,30 @@ const options = {
                     description: 'Bearer Token'
                 }
             },
+            parameters: {
+                IsClerkHeader: {
+                    name: 'X-Is-Clerk',
+                    in: 'header',
+                    required: false,
+                    schema: {
+                        type: 'string',
+                        enum: ['true', 'false']
+                    },
+                    description: 'Set to "true" to use Clerk authentication instead of Firebase. Default is Firebase.'
+                },
+                IsClerkQuery: {
+                    name: 'isClerk',
+                    in: 'query',
+                    required: false,
+                    schema: {
+                        type: 'string',
+                        enum: ['true', 'false']
+                    },
+                    description: 'Set to "true" to use Clerk authentication instead of Firebase. Alternative to X-Is-Clerk header.'
+                }
+            },
             schemas: {
-                
+
                 User: {
                     type: 'object',
                     properties: {
@@ -132,8 +160,8 @@ const options = {
                         }
                     }
                 },
-                
-                
+
+
                 Tourist: {
                     type: 'object',
                     properties: {
@@ -167,8 +195,8 @@ const options = {
                         expectedCheckOutTime: { type: 'string', format: 'date-time' }
                     }
                 },
-                
-                
+
+
                 LocationHistory: {
                     type: 'object',
                     properties: {
@@ -191,8 +219,8 @@ const options = {
                         source: { type: 'string', enum: ['gps', 'network', 'manual', 'iot_device', 'emergency'] }
                     }
                 },
-                
-                
+
+
                 Alert: {
                     type: 'object',
                     properties: {
@@ -221,8 +249,8 @@ const options = {
                         }
                     }
                 },
-                
-                
+
+
                 Device: {
                     type: 'object',
                     properties: {
@@ -250,8 +278,8 @@ const options = {
                         }
                     }
                 },
-                
-                
+
+
                 GeoFence: {
                     type: 'object',
                     properties: {
@@ -282,8 +310,8 @@ const options = {
                         createdBy: { type: 'string', description: 'Reference to User' }
                     }
                 },
-                
-                
+
+
                 Incident: {
                     type: 'object',
                     properties: {
@@ -316,8 +344,8 @@ const options = {
                         }
                     }
                 },
-                
-                
+
+
                 DigitalId: {
                     type: 'object',
                     properties: {
@@ -352,8 +380,8 @@ const options = {
                         expiryDate: { type: 'string', format: 'date-time' }
                     }
                 },
-                
-                
+
+
                 OCRResult: {
                     type: 'object',
                     properties: {
@@ -372,8 +400,8 @@ const options = {
                         extractedText: { type: 'string' }
                     }
                 },
-                
-                
+
+
                 SuccessResponse: {
                     type: 'object',
                     properties: {
@@ -404,8 +432,8 @@ const options = {
                         }
                     }
                 },
-                
-                
+
+
                 DataResponse: {
                     type: 'object',
                     allOf: [
@@ -421,52 +449,52 @@ const options = {
                         }
                     ]
                 },
-                
-                
+
+
                 LocationUpdateRequest: {
                     type: 'object',
                     required: ['touristId', 'latitude', 'longitude'],
                     properties: {
-                        touristId: { 
-                            type: 'string', 
-                            description: 'Tourist ID' 
+                        touristId: {
+                            type: 'string',
+                            description: 'Tourist ID'
                         },
-                        latitude: { 
-                            type: 'number', 
-                            minimum: -90, 
+                        latitude: {
+                            type: 'number',
+                            minimum: -90,
                             maximum: 90,
                             description: 'Latitude coordinate'
                         },
-                        longitude: { 
-                            type: 'number', 
-                            minimum: -180, 
+                        longitude: {
+                            type: 'number',
+                            minimum: -180,
                             maximum: 180,
                             description: 'Longitude coordinate'
                         },
-                        accuracy: { 
-                            type: 'number', 
-                            description: 'GPS accuracy in meters (optional)' 
+                        accuracy: {
+                            type: 'number',
+                            description: 'GPS accuracy in meters (optional)'
                         },
-                        speed: { 
-                            type: 'number', 
-                            description: 'Speed in m/s (optional)' 
+                        speed: {
+                            type: 'number',
+                            description: 'Speed in m/s (optional)'
                         },
-                        heading: { 
-                            type: 'number', 
-                            description: 'Direction in degrees (optional)' 
+                        heading: {
+                            type: 'number',
+                            description: 'Direction in degrees (optional)'
                         },
-                        altitude: { 
-                            type: 'number', 
-                            description: 'Altitude in meters (optional)' 
+                        altitude: {
+                            type: 'number',
+                            description: 'Altitude in meters (optional)'
                         },
-                        batteryLevel: { 
-                            type: 'number', 
-                            minimum: 0, 
+                        batteryLevel: {
+                            type: 'number',
+                            minimum: 0,
                             maximum: 100,
                             description: 'Battery level percentage (optional)'
                         },
-                        source: { 
-                            type: 'string', 
+                        source: {
+                            type: 'string',
                             enum: ['gps', 'network', 'manual', 'iot_device', 'emergency'],
                             description: 'Location source type (optional)'
                         }
@@ -483,8 +511,8 @@ const options = {
                         source: "gps"
                     }
                 },
-                
-                
+
+
                 GeofenceCreateRequest: {
                     type: 'object',
                     required: ['name', 'type', 'geometry'],
@@ -513,7 +541,7 @@ const options = {
                         }
                     }
                 },
-                
+
                 // ==================== FAMILY TRACKING SCHEMAS ====================
                 FamilyGroup: {
                     type: 'object',
@@ -539,25 +567,25 @@ const options = {
                         updatedAt: { type: 'string', format: 'date-time' }
                     }
                 },
-                
+
                 FamilyMember: {
                     type: 'object',
                     properties: {
                         _id: { type: 'string', description: 'Member record ID' },
                         familyGroupId: { type: 'string', description: 'Reference to FamilyGroup' },
                         touristId: { type: 'string', description: 'Reference to Tourist' },
-                        role: { 
-                            type: 'string', 
+                        role: {
+                            type: 'string',
                             enum: ['admin', 'guardian', 'member', 'child'],
                             description: 'Member role in the group'
                         },
                         nickname: { type: 'string', description: 'Display name in the group' },
-                        relationship: { 
-                            type: 'string', 
+                        relationship: {
+                            type: 'string',
                             enum: ['parent', 'child', 'spouse', 'sibling', 'grandparent', 'grandchild', 'relative', 'friend', 'other']
                         },
-                        status: { 
-                            type: 'string', 
+                        status: {
+                            type: 'string',
                             enum: ['active', 'pending', 'suspended'],
                             default: 'active'
                         },
@@ -582,7 +610,7 @@ const options = {
                         joinedAt: { type: 'string', format: 'date-time' }
                     }
                 },
-                
+
                 FamilyInvite: {
                     type: 'object',
                     properties: {
@@ -600,15 +628,15 @@ const options = {
                         createdAt: { type: 'string', format: 'date-time' }
                     }
                 },
-                
+
                 FamilyAlert: {
                     type: 'object',
                     properties: {
                         _id: { type: 'string', description: 'Alert ID' },
                         familyGroupId: { type: 'string', description: 'Reference to FamilyGroup' },
                         triggeredBy: { type: 'string', description: 'Tourist ID who triggered alert' },
-                        alertType: { 
-                            type: 'string', 
+                        alertType: {
+                            type: 'string',
                             enum: ['sos', 'emergency', 'geofence_exit', 'low_battery', 'inactive', 'check_in_request', 'custom']
                         },
                         severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
@@ -636,7 +664,7 @@ const options = {
                         createdAt: { type: 'string', format: 'date-time' }
                     }
                 },
-                
+
                 FamilyLocationShare: {
                     type: 'object',
                     required: ['latitude', 'longitude'],
@@ -653,7 +681,7 @@ const options = {
                         batteryLevel: 85
                     }
                 },
-                
+
                 FamilySOSRequest: {
                     type: 'object',
                     properties: {
@@ -674,10 +702,22 @@ const options = {
         paths: {
             '/api/users/verify': {
                 post: {
-                    summary: 'Verify Firebase authentication token',
-                    description: 'Verifies the provided Firebase ID token and returns user information',
+                    summary: 'Verify authentication token (Firebase or Clerk)',
+                    description: `Verifies the provided authentication token and returns user information.
+
+**Dual Authentication Support:**
+- **Firebase (default):** Used for Flutter mobile app. Just send the Firebase ID token.
+- **Clerk:** Used for React Native app. Send Clerk session token with \`X-Is-Clerk: true\` header.
+
+**How to use Clerk authentication:**
+1. Add header: \`X-Is-Clerk: true\`
+2. OR add query param: \`?isClerk=true\`
+3. OR include in body: \`{ "isClerk": true }\``,
                     tags: ['🔐 Mobile App - Authentication'],
-                    security: [{ FirebaseAuth: [] }],
+                    security: [{ FirebaseAuth: [] }, { ClerkAuth: [] }],
+                    parameters: [
+                        { $ref: '#/components/parameters/IsClerkHeader' }
+                    ],
                     responses: {
                         200: {
                             description: 'Token verified successfully',
@@ -701,6 +741,11 @@ const options = {
                                                                             tokenValid: {
                                                                                 type: 'boolean',
                                                                                 example: true
+                                                                            },
+                                                                            authProvider: {
+                                                                                type: 'string',
+                                                                                enum: ['firebase', 'clerk'],
+                                                                                example: 'firebase'
                                                                             }
                                                                         }
                                                                     }
@@ -736,10 +781,17 @@ const options = {
             },
             '/api/users/me': {
                 get: {
-                    summary: 'Get current user information',
-                    description: 'Retrieves current user information from Firebase token',
+                    summary: 'Get current user information (Firebase or Clerk)',
+                    description: `Retrieves current user information from authentication token.
+
+**Dual Authentication Support:**
+- **Firebase (default):** Used for Flutter mobile app
+- **Clerk:** Used for React Native app. Add \`X-Is-Clerk: true\` header.`,
                     tags: ['🔐 Mobile App - Authentication'],
-                    security: [{ FirebaseAuth: [] }],
+                    security: [{ FirebaseAuth: [] }, { ClerkAuth: [] }],
+                    parameters: [
+                        { $ref: '#/components/parameters/IsClerkHeader' }
+                    ],
                     responses: {
                         200: {
                             description: 'User information retrieved successfully',
@@ -828,8 +880,8 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized - Authentication required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Profile not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized - Authentication required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Profile not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 put: {
@@ -908,8 +960,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -948,7 +1000,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1008,8 +1060,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1090,8 +1142,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1129,9 +1181,9 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1174,8 +1226,8 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Location not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Location not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1227,8 +1279,8 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1401,7 +1453,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1473,8 +1525,8 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1511,7 +1563,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1556,7 +1608,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1632,7 +1684,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1660,8 +1712,8 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Alert not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Alert not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1714,8 +1766,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1768,8 +1820,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 get: {
@@ -1899,7 +1951,7 @@ const options = {
                                 }
                             }
                         },
-                        500: { description: 'Internal server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        500: { description: 'Internal server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -1923,13 +1975,13 @@ const options = {
                                 schema: {
                                     type: 'object',
                                     properties: {
-                                        response: { 
-                                            type: 'string', 
-                                            description: 'Acknowledgment response or notes for all alerts' 
+                                        response: {
+                                            type: 'string',
+                                            description: 'Acknowledgment response or notes for all alerts'
                                         },
-                                        acknowledgedBy: { 
-                                            type: 'string', 
-                                            description: 'Name or ID of person acknowledging the alerts' 
+                                        acknowledgedBy: {
+                                            type: 'string',
+                                            description: 'Name or ID of person acknowledging the alerts'
                                         }
                                     }
                                 }
@@ -1968,9 +2020,9 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request - Tourist ID required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Tourist not found or no unacknowledged alerts', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        500: { description: 'Internal server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request - Tourist ID required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Tourist not found or no unacknowledged alerts', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        500: { description: 'Internal server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2088,7 +2140,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 post: {
@@ -2145,8 +2197,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2198,9 +2250,9 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 delete: {
@@ -2226,8 +2278,8 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2331,10 +2383,10 @@ const options = {
                                 }
                             }
                         },
-                        500: { 
-                            description: 'Internal server error', 
-                            content: { 
-                                'application/json': { 
+                        500: {
+                            description: 'Internal server error',
+                            content: {
+                                'application/json': {
                                     schema: { $ref: '#/components/schemas/ErrorResponse' }
                                 }
                             }
@@ -2393,7 +2445,7 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'No tourists with current locations found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'No tourists with current locations found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2426,7 +2478,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2520,7 +2572,7 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2555,7 +2607,7 @@ const options = {
                                 }
                             }
                         },
-                        500: { description: 'Blockchain health check failed', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        500: { description: 'Blockchain health check failed', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2622,8 +2674,8 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Tourist not found or no blockchain record', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Tourist not found or no blockchain record', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2660,8 +2712,8 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'No blockchain record found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'No blockchain record found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2711,8 +2763,8 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Verification requires authority access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Verification requires authority access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2772,8 +2824,8 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Bulk operations require admin access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Bulk operations require admin access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2811,8 +2863,8 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Tourist not found on blockchain', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Tourist not found on blockchain', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 put: {
@@ -2863,12 +2915,12 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Status updates require authority access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        400: { description: 'Status is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Status updates require authority access', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        400: { description: 'Status is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
-            
+
             // ==================== FAMILY TRACKING API PATHS ====================
             '/api/family/groups': {
                 post: {
@@ -2925,8 +2977,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Invalid input - name is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Invalid input - name is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 get: {
@@ -2962,7 +3014,7 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -2982,8 +3034,8 @@ const options = {
                                     properties: {
                                         inviteCode: { type: 'string', description: 'The invite code to join', example: 'ABC123XY' },
                                         nickname: { type: 'string', description: 'Your display name in the group', example: 'Dad' },
-                                        relationship: { 
-                                            type: 'string', 
+                                        relationship: {
+                                            type: 'string',
                                             enum: ['parent', 'child', 'spouse', 'sibling', 'grandparent', 'grandchild', 'relative', 'friend', 'other'],
                                             example: 'parent'
                                         }
@@ -3018,8 +3070,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Invalid or expired invite code, or already a member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Invalid or expired invite code, or already a member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3060,8 +3112,8 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 put: {
@@ -3095,9 +3147,9 @@ const options = {
                         }
                     },
                     responses: {
-                        200: { description: 'Group updated successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
-                        403: { description: 'Not an admin of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        200: { description: 'Group updated successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+                        403: { description: 'Not an admin of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 },
                 delete: {
@@ -3109,9 +3161,9 @@ const options = {
                         { name: 'groupId', in: 'path', required: true, schema: { type: 'string' }, description: 'Family group ID' }
                     ],
                     responses: {
-                        200: { description: 'Group deleted successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
-                        403: { description: 'Only the creator can delete the group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        200: { description: 'Group deleted successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+                        403: { description: 'Only the creator can delete the group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3161,7 +3213,7 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Not authorized to generate invite codes', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Not authorized to generate invite codes', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3215,8 +3267,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'At least one identifier required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        403: { description: 'Not authorized to invite members', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'At least one identifier required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        403: { description: 'Not authorized to invite members', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3245,9 +3297,9 @@ const options = {
                         }
                     },
                     responses: {
-                        200: { description: 'Member approved/rejected successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
-                        403: { description: 'Not authorized to approve members', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Member not found or not pending', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        200: { description: 'Member approved/rejected successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+                        403: { description: 'Not authorized to approve members', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Member not found or not pending', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3262,9 +3314,9 @@ const options = {
                         { name: 'memberId', in: 'path', required: true, schema: { type: 'string' }, description: 'Member ID to remove' }
                     ],
                     responses: {
-                        200: { description: 'Member removed successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
-                        403: { description: 'Not authorized to remove this member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Member not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        200: { description: 'Member removed successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+                        403: { description: 'Not authorized to remove this member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Member not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3321,7 +3373,7 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3348,9 +3400,9 @@ const options = {
                         }
                     },
                     responses: {
-                        200: { description: 'Check-in request sent', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
-                        403: { description: 'Not authorized to request check-ins', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Member not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        200: { description: 'Check-in request sent', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+                        403: { description: 'Not authorized to request check-ins', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Member not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3411,8 +3463,8 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Not a member or location viewing disabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Not a member or location viewing disabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        404: { description: 'Group not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3465,8 +3517,8 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Invalid coordinates', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
-                        403: { description: 'Location sharing disabled for this member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Invalid coordinates', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+                        403: { description: 'Location sharing disabled for this member', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3511,7 +3563,7 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3563,7 +3615,7 @@ const options = {
                                 }
                             }
                         },
-                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        403: { description: 'Not a member of this group', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3653,7 +3705,7 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Invitation not found or expired', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Invitation not found or expired', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3702,11 +3754,11 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Alert not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Alert not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
-            
+
             // ==================== MISSING TRACKING API PATHS ====================
             '/api/tracking/config': {
                 get: {
@@ -3795,7 +3847,7 @@ const options = {
                     }
                 }
             },
-            
+
             // ==================== MAPS API PATHS ====================
             '/api/maps/config': {
                 get: {
@@ -3865,7 +3917,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Address is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Address is required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3904,7 +3956,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -3957,7 +4009,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Missing required parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Missing required parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4010,7 +4062,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4052,7 +4104,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Missing required coordinates', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Missing required coordinates', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4092,7 +4144,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'All coordinates are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'All coordinates are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4143,7 +4195,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Missing required parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Missing required parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4182,7 +4234,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4223,11 +4275,11 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Latitude and longitude are required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
-            
+
             // ==================== VIDEO API PATHS ====================
             '/api/videos/upload': {
                 post: {
@@ -4275,7 +4327,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Invalid file type or missing file', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Invalid file type or missing file', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4322,7 +4374,7 @@ const options = {
                                 }
                             }
                         },
-                        400: { description: 'Invalid files or no files provided', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        400: { description: 'Invalid files or no files provided', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4381,7 +4433,7 @@ const options = {
                     responses: {
                         200: { description: 'Video stream' },
                         206: { description: 'Partial content (range request)' },
-                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4395,7 +4447,7 @@ const options = {
                     ],
                     responses: {
                         200: { description: 'Video file download' },
-                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4435,7 +4487,7 @@ const options = {
                                 }
                             }
                         },
-                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
@@ -4448,12 +4500,12 @@ const options = {
                         { name: 'videoId', in: 'path', required: true, schema: { type: 'string' }, description: 'Video ID or filename' }
                     ],
                     responses: {
-                        200: { description: 'Video deleted successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' }}}},
-                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        200: { description: 'Video deleted successfully', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+                        404: { description: 'Video not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             },
-            
+
             // ==================== LOCATION HISTORY ALTERNATE ENDPOINT ====================
             '/api/tracking/location/history/my': {
                 get: {
@@ -4490,13 +4542,13 @@ const options = {
                                 }
                             }
                         },
-                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
                     }
                 }
             }
         }
     },
-    apis: ['./src/controllers/*.js', './src/routes/*.js'], 
+    apis: ['./src/controllers/*.js', './src/routes/*.js'],
 };
 
 const specs = swaggerJSDoc(options);
