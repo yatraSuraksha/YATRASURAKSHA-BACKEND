@@ -1,11 +1,38 @@
 import { auth } from '../config/firebase.config.js';
 import admin from 'firebase-admin';
 import blockchainClientService from '../services/blockchain-client.service.js';
+import { verifyClerkToken, isClerkConfigured } from '../config/clerk.config.js';
+
+/**
+ * Check if the request should use Clerk authentication
+ * Checks for 'isClerk' in headers (X-Is-Clerk), query params, or body
+ * @param {object} req - Express request object
+ * @returns {boolean} - True if Clerk auth should be used
+ */
+const shouldUseClerk = (req) => {
+    // Check header: X-Is-Clerk: true
+    const headerValue = req.headers['x-is-clerk'];
+    if (headerValue === 'true' || headerValue === '1') {
+        return true;
+    }
+
+    // Check query param: ?isClerk=true
+    if (req.query?.isClerk === 'true' || req.query?.isClerk === '1') {
+        return true;
+    }
+
+    // Check body: { isClerk: true }
+    if (req.body?.isClerk === true || req.body?.isClerk === 'true') {
+        return true;
+    }
+
+    return false;
+};
 
 // Enhanced authentication middleware with blockchain verification
 export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
     try {
-        
+
         if (!auth) {
             return res.status(503).json({
                 success: false,
@@ -14,7 +41,7 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
         }
 
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader) {
             return res.status(401).json({
                 success: false,
@@ -28,8 +55,8 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
             });
         }
 
-        const token = authHeader.split(' ')[1]; 
-        
+        const token = authHeader.split(' ')[1];
+
         if (!token || token === 'null' || token === 'undefined' || token.trim() === '') {
             return res.status(401).json({
                 success: false,
@@ -43,15 +70,15 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
                 message: 'Invalid token format. Token must be a valid JWT.'
             });
         }
-        
+
         const decodedToken = await auth.verifyIdToken(token);
-        
+
         // Verify blockchain DID if available
         let blockchainVerification = null;
         try {
             const Tourist = (await import('../models/tourist.model.js')).default;
             const tourist = await Tourist.findOne({ firebaseUid: decodedToken.uid });
-            
+
             if (tourist?.blockchainDID) {
                 blockchainVerification = await blockchainClientService.verifyRecord(tourist.blockchainDID);
                 console.log('🔗 Blockchain verification completed:', blockchainVerification.verified ? 'VALID' : 'INVALID');
@@ -60,7 +87,7 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
             console.warn('⚠️ Blockchain verification failed:', blockchainError.message);
             // Continue without blockchain verification
         }
-        
+
         req.user = {
             uid: decodedToken.uid,
             email: decodedToken.email,
@@ -75,11 +102,11 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('🚨 Authentication error:', error.message);
-        
+
         // Specific error handling
         let errorMessage = 'Authentication failed';
         let statusCode = 401;
-        
+
         if (error.code === 'auth/id-token-expired') {
             errorMessage = 'Token has expired. Please sign in again.';
         } else if (error.code === 'auth/argument-error') {
@@ -87,7 +114,7 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
         } else if (error.code === 'auth/id-token-revoked') {
             errorMessage = 'Token has been revoked. Please sign in again.';
         }
-        
+
         return res.status(statusCode).json({
             success: false,
             message: errorMessage,
@@ -98,16 +125,8 @@ export const verifyFirebaseTokenWithBlockchain = async (req, res, next) => {
 
 export const verifyFirebaseToken = async (req, res, next) => {
     try {
-        
-        if (!auth) {
-            return res.status(503).json({
-                success: false,
-                message: 'Firebase authentication is not configured. Please set up Firebase credentials.'
-            });
-        }
-
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader) {
             return res.status(401).json({
                 success: false,
@@ -121,12 +140,12 @@ export const verifyFirebaseToken = async (req, res, next) => {
             });
         }
 
-        const token = authHeader.split(' ')[1]; 
-        
+        const token = authHeader.split(' ')[1];
+
         if (!token || token === 'null' || token === 'undefined' || token.trim() === '') {
             return res.status(401).json({
                 success: false,
-                message: 'Valid Firebase ID token is required'
+                message: 'Valid ID token is required'
             });
         }
         const tokenParts = token.split('.');
@@ -136,12 +155,60 @@ export const verifyFirebaseToken = async (req, res, next) => {
                 message: 'Invalid token format. Token must be a valid JWT.'
             });
         }
+
+        // Check if Clerk authentication should be used
+        if (shouldUseClerk(req)) {
+            console.log('🔐 Using Clerk authentication (isClerk flag detected)');
+
+            if (!isClerkConfigured()) {
+                return res.status(503).json({
+                    success: false,
+                    message: 'Clerk authentication is not configured. Please set CLERK_SECRET_KEY.'
+                });
+            }
+
+            try {
+                const clerkUser = await verifyClerkToken(token);
+                console.log(`✅ Clerk token verified for user: ${clerkUser.email}`);
+
+                req.user = {
+                    uid: clerkUser.uid,
+                    email: clerkUser.email,
+                    emailVerified: clerkUser.emailVerified,
+                    name: clerkUser.name,
+                    picture: clerkUser.picture,
+                    signInProvider: 'clerk',
+                    authProvider: 'clerk',
+                    clerkUser: clerkUser.clerkUser
+                };
+
+                return next();
+            } catch (clerkError) {
+                console.error('🚨 Clerk token verification failed:', clerkError.message);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid or expired Clerk token. Please login again.',
+                    error: 'CLERK_AUTH_FAILED',
+                    debug: process.env.NODE_ENV === 'development' ? {
+                        message: clerkError.message
+                    } : undefined
+                });
+            }
+        }
+
+        // Firebase authentication (default)
+        if (!auth) {
+            return res.status(503).json({
+                success: false,
+                message: 'Firebase authentication is not configured. Please set up Firebase credentials.'
+            });
+        }
+
         // Enhanced token verification with debugging
-        console.log(`🔍 Token verification attempt for token length: ${token.length}`);
-        console.log(`🔍 Token preview: ${token.substring(0, 50)}...`);
-        
+        console.log(`🔍 Firebase token verification attempt for token length: ${token.length}`);
+
         const decodedToken = await auth.verifyIdToken(token);
-        
+
         // Log detailed token information for debugging
         console.log(`✅ Token verified successfully`);
         console.log(`🔍 Decoded token details:`, {
@@ -156,11 +223,11 @@ export const verifyFirebaseToken = async (req, res, next) => {
             audience: decodedToken.aud,
             issuer: decodedToken.iss
         });
-        
+
         // Check if token is from Google OAuth vs email/password
         const signInProvider = decodedToken.firebase?.sign_in_provider;
         console.log(`🔍 Sign-in provider: ${signInProvider}`);
-        
+
         req.user = {
             uid: decodedToken.uid,
             email: decodedToken.email,
@@ -168,6 +235,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
             name: decodedToken.name,
             picture: decodedToken.picture,
             signInProvider: signInProvider,
+            authProvider: 'firebase',
             firebaseUser: decodedToken
         };
 
@@ -177,7 +245,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
         console.error('🚨 Firebase token verification error:', error.message);
         console.error('🚨 Error code:', error.code);
         console.error('🚨 Error details:', error);
-        
+
         // Additional debugging for token structure
         if (token) {
             try {
@@ -201,11 +269,11 @@ export const verifyFirebaseToken = async (req, res, next) => {
                 console.error('🚨 Failed to decode token for debugging:', decodeError.message);
             }
         }
-        
+
         if (process.env.NODE_ENV === 'development') {
             console.error('Full error details:', error);
         }
-        
+
         // Specific error handling for different Firebase auth errors
         if (error.code === 'auth/id-token-expired') {
             return res.status(401).json({
@@ -219,7 +287,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
                 } : undefined
             });
         }
-        
+
         if (error.code === 'auth/argument-error') {
             return res.status(401).json({
                 success: false,
@@ -244,7 +312,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
                 } : undefined
             });
         }
-        
+
         // Check for project mismatch errors (common with Google OAuth)
         if (error.message.includes('project') || error.message.includes('audience')) {
             return res.status(401).json({
@@ -258,7 +326,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
                 } : undefined
             });
         }
-        
+
         return res.status(401).json({
             success: false,
             message: 'Invalid or expired token. Please login again.',
@@ -275,16 +343,9 @@ export const verifyFirebaseToken = async (req, res, next) => {
 export const optionalAuth = async (req, res, next) => {
     try {
         console.log('🔐 optionalAuth: Starting token verification...');
-        
-        if (!auth) {
-            console.log('⚠️ optionalAuth: Firebase auth not initialized');
-            req.user = null;
-            return next();
-        }
 
         const authHeader = req.headers.authorization;
-        
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             console.log('⚠️ optionalAuth: No Bearer token in Authorization header');
             req.user = null;
@@ -292,8 +353,7 @@ export const optionalAuth = async (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
-        
-        
+
         if (!token || token === 'null' || token === 'undefined' || token.trim() === '') {
             console.log('⚠️ optionalAuth: Token is empty or invalid');
             req.user = null;
@@ -305,17 +365,57 @@ export const optionalAuth = async (req, res, next) => {
             req.user = null;
             return next();
         }
-        
-        console.log(`🔍 optionalAuth: Verifying token (length: ${token.length})...`);
+
+        // Check if Clerk authentication should be used
+        if (shouldUseClerk(req)) {
+            console.log('🔐 optionalAuth: Using Clerk authentication');
+
+            if (!isClerkConfigured()) {
+                console.log('⚠️ optionalAuth: Clerk not configured');
+                req.user = null;
+                return next();
+            }
+
+            try {
+                const clerkUser = await verifyClerkToken(token);
+                console.log(`✅ optionalAuth: Clerk token verified for user ${clerkUser.email}`);
+
+                req.user = {
+                    uid: clerkUser.uid,
+                    email: clerkUser.email,
+                    emailVerified: clerkUser.emailVerified,
+                    name: clerkUser.name,
+                    picture: clerkUser.picture,
+                    signInProvider: 'clerk',
+                    authProvider: 'clerk',
+                    clerkUser: clerkUser.clerkUser
+                };
+                return next();
+            } catch (clerkError) {
+                console.error('❌ optionalAuth: Clerk verification failed:', clerkError.message);
+                req.user = null;
+                return next();
+            }
+        }
+
+        // Firebase authentication (default)
+        if (!auth) {
+            console.log('⚠️ optionalAuth: Firebase auth not initialized');
+            req.user = null;
+            return next();
+        }
+
+        console.log(`🔍 optionalAuth: Verifying Firebase token (length: ${token.length})...`);
         const decodedToken = await auth.verifyIdToken(token);
-        console.log(`✅ optionalAuth: Token verified for user ${decodedToken.email}`);
-        
+        console.log(`✅ optionalAuth: Firebase token verified for user ${decodedToken.email}`);
+
         req.user = {
             uid: decodedToken.uid,
             email: decodedToken.email,
             emailVerified: decodedToken.email_verified,
             name: decodedToken.name,
             picture: decodedToken.picture,
+            authProvider: 'firebase',
             firebaseUser: decodedToken
         };
 

@@ -33,6 +33,7 @@
   "dependencies": {
     "@azure/cognitiveservices-computervision": "^8.2.0",
     "@azure/ms-rest-azure-js": "^2.1.0",
+    "@clerk/express": "^1.7.63",
     "@google-cloud/vision": "^5.3.3",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
