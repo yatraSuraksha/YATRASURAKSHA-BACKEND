@@ -1,4 +1,4 @@
-import { createClerkClient } from '@clerk/express';
+import { createClerkClient, verifyToken } from '@clerk/express';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -49,19 +49,25 @@ export const verifyClerkToken = async (token) => {
     }
 
     try {
-        // Verify the session token using Clerk's verifyToken
-        const verifiedToken = await clerk.verifyToken(token);
+        // Verify the session token using Clerk's verifyToken function
+        // This is a standalone function, not a method on the clerk client
+        const verifiedToken = await verifyToken(token, {
+            secretKey: process.env.CLERK_SECRET_KEY
+        });
+
+        // Extract user ID from the verified token
+        const userId = verifiedToken.sub;
 
         // Get user details for additional info
         let userDetails = null;
         try {
-            userDetails = await clerk.users.getUser(verifiedToken.sub);
+            userDetails = await clerk.users.getUser(userId);
         } catch (userError) {
             console.warn('⚠️ Could not fetch Clerk user details:', userError.message);
         }
 
         return {
-            uid: verifiedToken.sub, // Clerk user ID mapped to uid for consistency
+            uid: userId, // Clerk user ID mapped to uid for consistency
             email: userDetails?.emailAddresses?.[0]?.emailAddress || null,
             emailVerified: userDetails?.emailAddresses?.[0]?.verification?.status === 'verified',
             name: userDetails ? `${userDetails.firstName || ''} ${userDetails.lastName || ''}`.trim() : null,
